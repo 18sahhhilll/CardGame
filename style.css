@@ -1,0 +1,149 @@
+* { box-sizing: border-box; }
+body {
+  font-family: Arial, sans-serif;
+  margin: 0;
+  padding: 16px;
+  background: #f3f4f6;
+}
+h1 {
+  margin-top: 0;
+  font-size: 24px;
+}
+h2 {
+  font-size: 18px;
+  margin-bottom: 8px;
+}
+.container {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: 16px;
+}
+.card {
+  background: #ffffff;
+  border-radius: 8px;
+  padding: 12px 14px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.06);
+  margin-bottom: 12px;
+}
+label {
+  font-size: 14px;
+}
+input[type="text"],
+input[type="number"],
+select {
+  padding: 6px 8px;
+  margin: 4px 0;
+  border-radius: 4px;
+  border: 1px solid #d1d5db;
+  width: 100%;
+}
+button {
+  padding: 6px 10px;
+  border-radius: 4px;
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+  margin-top: 4px;
+  margin-right: 4px;
+  background: #2563eb;
+  color: white;
+}
+button[disabled] {
+  background: #9ca3af;
+  cursor: not-allowed;
+}
+.small-btn {
+  padding: 4px 8px;
+  font-size: 12px;
+}
+.pill {
+  display: inline-block;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: #e5e7eb;
+  font-size: 12px;
+  margin-right: 4px;
+  margin-bottom: 4px;
+}
+.player-tag {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: #e5e7eb;
+  font-size: 12px;
+  margin: 2px;
+}
+.player-tag span {
+  margin-right: 6px;
+}
+.danger {
+  background: #dc2626;
+  color: white;
+}
+.info {
+  font-size: 13px;
+  color: #4b5563;
+  margin-top: 4px;
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  margin-top: 8px;
+}
+th, td {
+  border: 1px solid #e5e7eb;
+  padding: 4px 6px;
+  text-align: center;
+}
+th {
+  background: #f9fafb;
+}
+.highlight {
+  background: #dbeafe;
+}
+.flex {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.winner-btn {
+  padding: 8px 12px;
+  border-radius: 999px;
+  border: 2px solid #888;       /* darker border */
+  background: white;
+  cursor: pointer;
+  font-size: 16px;              /* bigger and visible numbers */
+  font-weight: bold;            /* thicker text */
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #000;                  /* black text */
+}
+
+.winner-btn:hover {
+  background: #e5e7eb;
+}
+
+.winner-btn:disabled {
+  background: #d1d5db;
+  border-color: #aaa;
+  color: #666;
+}
+
+.footer-note {
+  margin-top: 12px;
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.blurred {
+  filter: blur(6px);
+  pointer-events: none;  /* cannot click inside when blurred */
+  transition: filter 0.3s ease;
+}

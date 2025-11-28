@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Trump Game Calculator</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <h1>Game Calculator</h1>
+
+  <div class="container">
+    <div>
+      <div class="card">
+        <h2>Players</h2>
+        <label for="playerName">Add Player (only between sets):</label>
+        <input type="text" id="playerName" placeholder="Player name (e.g. Sahil)">
+        <button id="addPlayerBtn">Add Player</button>
+        <div class="info">Players are used in the order they are added. You can delete players only after a set is finished.</div>
+        <button id="newGameBtn" class="danger" style="margin-top:8px;">New Game</button>
+        <div id="playerList" style="margin-top:8px;"></div>
+      </div>
+
+      <div class="card">
+        <h2>Set Controls</h2>
+        <button id="addSetBtn">Add Set</button>
+        <div id="setSizeChooser" style="margin-top:8px;"></div> <!-- ⬅ add this -->
+        <div class="info">
+          Each set asks for number of cards (rounds).<br>
+          Guesses rotate by starting player. Total of guesses must NOT equal number of cards.
+        </div>
+        <div id="currentSetInfo" style="margin-top:8px;"></div>
+      </div>
+
+      <div class="card">
+        <h2>Ranking</h2>
+        <button id="showRankingBtn">Reveal Ranking</button>
+        <div id="rankingArea" style="margin-top:8px;"></div>
+      </div>
+    </div>
+
+    <div>
+      <div class="card">
+        <h2>Active Set</h2>
+        <div id="activeSetArea">
+          <div class="info">No active set. Click "Add Set" to start.</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Scoreboard</h2>
+        <div id="scoreboardArea" class="info">No sets played yet.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer-note">
+    Rules: exact guess → wins + 10 bonus; under-guess → points = actual wins; over-guess → points = wins − guess.<br>
+    Total guesses for a set can be less or more than cards, but NOT equal.
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
