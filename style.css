@@ -147,3 +147,66 @@ th {
   pointer-events: none;  /* cannot click inside when blurred */
   transition: filter 0.3s ease;
 }
+
+/* ---------- Mobile (Android / small screens) ---------- */
+@media (max-width: 768px) {
+  body {
+    padding: 8px;
+  }
+
+  h1 {
+    font-size: 20px;
+    text-align: center;
+  }
+
+  .container {
+    display: block;          /* instead of 2 columns */
+  }
+
+  .card {
+    margin-bottom: 10px;
+  }
+
+  input[type="text"],
+  input[type="number"],
+  select {
+    font-size: 14px;
+  }
+
+  button {
+    font-size: 14px;
+    padding: 8px 10px;
+  }
+
+  .small-btn {
+    padding: 6px 8px;
+    font-size: 13px;
+  }
+
+  /* Guess / winner buttons: nicer for thumbs */
+  .winner-btn {
+    width: 40px;
+    height: 40px;
+    font-size: 16px;
+    margin-bottom: 4px;
+  }
+
+  .flex {
+    gap: 6px;
+  }
+
+  /* Tables: allow horizontal scroll instead of squishing */
+  #scoreboardArea,
+  #rankingArea {
+    overflow-x: auto;
+  }
+
+  table {
+    min-width: 480px;        /* prevents text from cramping too much */
+    font-size: 12px;
+  }
+
+  th, td {
+    padding: 4px;
+  }
+}
