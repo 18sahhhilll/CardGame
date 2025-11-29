@@ -9,6 +9,27 @@
   };
 
   const $ = (id) => document.getElementById(id);
+  function showPopup(text, callback = null) {
+  const modal = $("popupModal");
+  const textEl = $("popupText");
+  const okBtn = $("popupOk");
+
+  // Fallback: if modal not found, use alert so code never breaks
+  if (!modal || !textEl || !okBtn) {
+    alert(text);
+    if (callback) callback();
+    return;
+  }
+
+  textEl.innerHTML = text;
+  modal.classList.remove("hidden");   // show modal
+
+  okBtn.onclick = () => {
+    modal.classList.add("hidden");    // hide modal
+    if (callback) callback();
+  };
+}
+
 
   const playerNameInput = $("playerName");
   const addPlayerBtn = $("addPlayerBtn");
@@ -32,6 +53,7 @@ function applyRankingBlur() {
     rankingArea.classList.remove("blurred");
   }
 }
+
 
 function startNewSet(cards) {
   const setIndex = gameState.sets.length;
@@ -368,9 +390,10 @@ function renderGuessingUI() {
           <button id="confirmGuessYes">Yes</button>
           <button id="confirmGuessNo" class="danger">No</button>
         </div>
-        <div class="info" style="margin-top:4px;">
-          If no option is selected, guess will be confirmed automatically in 3 seconds.
+        <div class="info" id="countdownAutoConfirm">
+          Auto confirm in 3
         </div>
+
       </div>
     `;
 
@@ -550,7 +573,7 @@ let cdTimer = setInterval(() => {
     renderActiveSet();
     renderScoreboard();
     renderRanking();
-    alert(`Set #${cs.setNumber} completed!`);
+    showPopup(`🎉 Set #${cs.setNumber} completed! 🎉`);
   }
 
 function renderScoreboard() {
@@ -673,5 +696,4 @@ showRankingBtn.addEventListener("click", () => {
   renderScoreboard();
   renderRanking();
 })();
-
 
