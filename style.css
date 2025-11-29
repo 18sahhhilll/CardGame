@@ -113,104 +113,81 @@ th {
 .winner-btn {
   padding: 8px 12px;
   border-radius: 999px;
-  border: 2px solid #888;       /* darker border */
+  border: 2px solid #888;
   background: white;
   cursor: pointer;
-  font-size: 16px;              /* bigger and visible numbers */
-  font-weight: bold;            /* thicker text */
+  font-size: 16px;
+  font-weight: bold;
   width: 36px;
   height: 36px;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #000;                  /* black text */
+  color: #000;
 }
-
 .winner-btn:hover {
   background: #e5e7eb;
 }
-
 .winner-btn:disabled {
   background: #d1d5db;
   border-color: #aaa;
   color: #666;
 }
-
 .footer-note {
   margin-top: 12px;
   font-size: 12px;
   color: #6b7280;
 }
-
 .blurred {
   filter: blur(6px);
-  pointer-events: none;  /* cannot click inside when blurred */
+  pointer-events: none;
   transition: filter 0.3s ease;
 }
 
-/* ---------- Mobile (Android / small screens) ---------- */
+/* ---------- Mobile ---------- */
 @media (max-width: 768px) {
   body {
     padding: 8px;
   }
-
   h1 {
     font-size: 20px;
     text-align: center;
   }
-
   .container {
-    display: block;          /* instead of 2 columns */
+    display: block;
   }
-
   .card {
     margin-bottom: 10px;
   }
-
   input[type="text"],
   input[type="number"],
   select {
     font-size: 14px;
   }
-
   button {
     font-size: 14px;
     padding: 8px 10px;
   }
-
-  .small-btn {
-    padding: 6px 8px;
-    font-size: 13px;
-  }
-
-  /* Guess / winner buttons: nicer for thumbs */
   .winner-btn {
     width: 40px;
     height: 40px;
     font-size: 16px;
     margin-bottom: 4px;
   }
-
-  .flex {
-    gap: 6px;
-  }
-
-  /* Tables: allow horizontal scroll instead of squishing */
   #scoreboardArea,
   #rankingArea {
     overflow-x: auto;
   }
-
   table {
-    min-width: 480px;        /* prevents text from cramping too much */
+    min-width: 480px;
     font-size: 12px;
   }
-
   th, td {
     padding: 4px;
   }
 }
 
+/* ==== Modal Popup ==== */
 .modal {
   position: fixed;
   top: 0; left: 0;
@@ -221,26 +198,28 @@ th {
   justify-content: center;
   z-index: 9999;
 }
-
 .modal.hidden {
   display: none;
 }
-
 .modal-content {
-  background: white;
-  border-radius: 12px;
-  padding: 18px;
-  width: 80%;
-  max-width: 340px;
+  background: transparent;
+  border-radius: none;
+  padding: 0;
+  width: 420px;          /* fixed width */
+  height: 520px;         /* fixed height */
+  max-width: 95vw;
+  max-height: 95vh;
   text-align: center;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+  box-shadow:none;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
 }
-
 .popup-text {
   font-size: 16px;
   margin-bottom: 12px;
 }
-
 .popup-btn {
   background: #2563eb;
   color: white;
@@ -249,4 +228,107 @@ th {
   border: none;
   cursor: pointer;
   font-size: 14px;
+}
+
+/* =========================================
+     FINAL LEADERBOARD UI  
+   ========================================= */
+
+.leaderboard-card {
+  background: linear-gradient(135deg, #5b21b6, #7c3aed);
+  color: #f9fafb;
+  border-radius: 20px;
+  padding: 24px 20px;
+  text-align: center;
+  margin-bottom: 12px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+}
+
+.leaderboard-header {
+  font-size: 24px;
+  font-weight: bold;
+  color: #fbbf24;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.podium-container {
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.podium-box {
+  background: rgba(255,255,255,0.15);
+  backdrop-filter: blur(10px);
+  border-radius: 16px;
+  padding: 16px 12px;
+  text-align: center;
+  width: 120px;
+  transition: transform 0.2s ease;
+}
+
+.podium-box:hover {
+  transform: translateY(-4px);
+}
+
+.first-place {
+  height: 180px;
+  background: rgba(251, 191, 36, 0.2);
+  border: 2px solid rgba(251, 191, 36, 0.4);
+}
+
+.second-place {
+  height: 150px;
+  background: rgba(209, 213, 219, 0.2);
+  border: 2px solid rgba(209, 213, 219, 0.4);
+}
+
+.third-place {
+  height: 140px;
+  background: rgba(249, 115, 22, 0.2);
+  border: 2px solid rgba(249, 115, 22, 0.4);
+}
+
+.medal {
+  font-size: 32px;
+  margin-bottom: 8px;
+}
+
+.place {
+  font-size: 16px;
+  margin-bottom: 6px;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.name {
+  font-size: 20px;
+  font-weight: 700;
+  margin-bottom: 4px;
+  word-wrap: break-word;
+}
+
+.score {
+  font-size: 15px;
+  opacity: 0.9;
+  font-weight: 500;
+}
+
+.gold {
+  color: #fbbf24;
+}
+
+.silver {
+  color: #e5e7eb;
+}
+
+.bronze {
+  color: #fb923c;
 }
