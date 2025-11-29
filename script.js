@@ -273,7 +273,7 @@ function startNewSet(cards) {
     });
   }
 
-  function renderGuessingUI() {
+function renderGuessingUI() {
   const cs = gameState.currentSet;
   const currentPlayerId = cs.guessOrder[cs.guessIndex];
   const currentPlayer = gameState.players.find(p => p.id === currentPlayerId);
@@ -346,85 +346,160 @@ function startNewSet(cards) {
   });
 
   function handleGuessSelection(val) {
-    if (val < 0 || val > cs.cards || isNaN(val)) return;
+    if (isNaN(val) || val < 0 || val > cs.cards) return;
 
-    cs.guesses[currentPlayerId] = val;
+    const currentPlayerId = cs.guessOrder[cs.guessIndex];
+    const currentPlayer = gameState.players.find(p => p.id === currentPlayerId);
 
-    const isLastNow = cs.guessIndex === cs.guessOrder.length - 1;
-    if (isLastNow) {
-      const totalGuesses = cs.guessOrder.reduce((sum, id) => sum + (cs.guesses[id] || 0), 0);
-      if (totalGuesses === cs.cards) {
-        // safety: should not happen because button was disabled, but just in case
-        alert(`Total guesses = ${totalGuesses}, cannot equal number of cards (${cs.cards}).`);
-        delete cs.guesses[currentPlayerId];
-        saveState();
-        renderActiveSet();
-        return;
-      }
-      cs.stage = "rounds";
-      cs.currentRound = 1;
-      cs.wins = {};
-      saveState();
-      renderCurrentSetInfo();
-      renderActiveSet();
-    } else {
-      cs.guessIndex += 1;
-      saveState();
-      renderActiveSet();
-    }
-  }
-}
+    let confirmed = false;
+    let timerId = null;
+    const guessValue = val;
 
-  function renderRoundsUI() {
-    const cs = gameState.currentSet;
-    const round = cs.currentRound;
-    const totalRounds = cs.cards;
-
-    if (round > totalRounds) {
-      finishCurrentSet();
-      return;
-    }
-
+    // show confirm card with Yes / No, auto-YES in 3 sec if no choice
     activeSetArea.innerHTML = `
-      <div>
+      <div class="card">
         <div class="info">
-          Set #${cs.setNumber} — Round ${round} of ${totalRounds}<br>
-          Click the winner.
+          <strong>${currentPlayer ? currentPlayer.name : "Player"}</strong> guessed <strong>${guessValue}</strong>.
         </div>
-        <div class="flex" style="margin-top:8px;">
-          ${gameState.players.map(p => {
-            return `<button class="winner-btn" data-win-player="${p.id}">${p.name}</button>`;
-          }).join("")}
+        <div class="info" style="margin-top:4px;">
+          Confirm this guess?
         </div>
-
         <div style="margin-top:8px;">
-          <strong>Wins so far:</strong><br>
-          ${gameState.players.map(p => {
-            const w = cs.wins[p.id] || 0;
-            return `<span class="pill">${p.name}: ${w}</span>`;
-          }).join("")}
+          <button id="confirmGuessYes">Yes</button>
+          <button id="confirmGuessNo" class="danger">No</button>
         </div>
-
-        <div style="margin-top:8px;">
-          <strong>Guesses:</strong><br>
-          ${gameState.players.map(p => {
-            const g = cs.guesses[p.id];
-            return `<span class="pill">${p.name}: ${g}</span>`;
-          }).join("")}
+        <div class="info" style="margin-top:4px;">
+          If no option is selected, guess will be confirmed automatically in 3 seconds.
         </div>
       </div>
     `;
 
-    activeSetArea.querySelectorAll("[data-win-player]").forEach(btn => {
-      btn.addEventListener("click", () => {
-        const id = parseInt(btn.getAttribute("data-win-player"), 10);
-        cs.wins[id] = (cs.wins[id] || 0) + 1;
-        cs.currentRound += 1;
+    const yesBtn = document.getElementById("confirmGuessYes");
+    const noBtn = document.getElementById("confirmGuessNo");
+
+    function proceed(accepted) {
+      if (confirmed) return;
+      confirmed = true;
+      if (timerId) clearTimeout(timerId);
+
+      if (!accepted) {
+        // NO → go back to the same player's guessing UI
+        saveState(); // nothing actually changed yet
+        renderActiveSet();
+        return;
+      }
+
+      // YES (or auto-YES) → commit guess and move on
+      cs.guesses[currentPlayerId] = guessValue;
+      saveState();
+
+      const isLastNow = cs.guessIndex === cs.guessOrder.length - 1;
+
+      if (isLastNow) {
+        const totalGuesses = cs.guessOrder.reduce((sum, id) => sum + (cs.guesses[id] || 0), 0);
+
+        // Safety check (should not happen due to forbidden button, but just in case)
+        if (totalGuesses === cs.cards) {
+          alert(`Total guesses = ${totalGuesses}, cannot equal number of cards (${cs.cards}). Please guess again.`);
+          delete cs.guesses[currentPlayerId];
+          saveState();
+          renderActiveSet();
+          return;
+        }
+
+        cs.stage = "rounds";
+        cs.currentRound = 1;
+        cs.wins = {};
+        saveState();
+        renderCurrentSetInfo();
+        renderActiveSet();
+      } else {
+        cs.guessIndex += 1;
         saveState();
         renderActiveSet();
-      });
-    });
+      }
+    }
+
+    yesBtn.addEventListener("click", () => proceed(true));
+    noBtn.addEventListener("click", () => proceed(false));
+
+    // auto-confirm as YES in 3 sec if user doesn't press anything
+    timerId = setTimeout(() => {
+      proceed(true);
+    }, 3000);
   }
+}
+
+
+function renderRoundsUI() {
+  const cs = gameState.currentSet;
+  const round = cs.currentRound;
+  const totalRounds = cs.cards;
+
+  if (round > totalRounds) {
+    finishCurrentSet();
+    return;
+  }
+
+  activeSetArea.innerHTML = `
+    <div>
+      <div class="info">
+        Set #${cs.setNumber} — Round ${round} of ${totalRounds}<br>
+        Click the winner for this round (exactly one winner).
+      </div>
+      <div class="flex" style="margin-top:8px;">
+        ${gameState.players.map(p => {
+          return `<button class="winner-btn" data-win-player="${p.id}">${p.name}</button>`;
+        }).join("")}
+      </div>
+
+      <div style="margin-top:8px;">
+        <strong>Wins so far:</strong><br>
+        ${gameState.players.map(p => {
+          const w = cs.wins[p.id] || 0;
+          return `<span class="pill">${p.name}: ${w}</span>`;
+        }).join("")}
+      </div>
+
+      <div style="margin-top:8px;">
+        <strong>Guesses:</strong><br>
+        ${gameState.players.map(p => {
+          const g = cs.guesses[p.id];
+          return `<span class="pill">${p.name}: ${g}</span>`;
+        }).join("")}
+      </div>
+    </div>
+  `;
+
+  activeSetArea.querySelectorAll("[data-win-player]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const id = parseInt(btn.getAttribute("data-win-player"), 10);
+      const player = gameState.players.find(p => p.id === id);
+
+      // Count win now
+      cs.wins[id] = (cs.wins[id] || 0) + 1;
+      saveState();
+
+      // Show confirmation card and delay next round
+      activeSetArea.innerHTML = `
+        <div class="card">
+          <div class="info">
+            Round ${round} winner: <strong>${player ? player.name : "Player"}</strong>.
+          </div>
+          <div class="info">
+            Next round will start in 3 seconds...
+          </div>
+        </div>
+      `;
+
+      setTimeout(() => {
+        cs.currentRound += 1;
+        saveState();
+        renderActiveSet();  // will either go to next round or finishCurrentSet()
+      }, 3000); // 3 seconds
+    });
+  });
+}
 
   function finishCurrentSet() {
     const cs = gameState.currentSet;
