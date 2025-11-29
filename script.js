@@ -481,22 +481,29 @@ function renderRoundsUI() {
       saveState();
 
       // Show confirmation card and delay next round
-      activeSetArea.innerHTML = `
-        <div class="card">
-          <div class="info">
-            Round ${round} winner: <strong>${player ? player.name : "Player"}</strong>.
-          </div>
-          <div class="info">
-            Next round will start in 3 seconds...
-          </div>
-        </div>
-      `;
+let countdown = 3;
 
-      setTimeout(() => {
-        cs.currentRound += 1;
-        saveState();
-        renderActiveSet();  // will either go to next round or finishCurrentSet()
-      }, 3000); // 3 seconds
+activeSetArea.innerHTML = `
+  <div class="card">
+    <div class="info">
+      Round ${round} winner: <strong>${player ? player.name : "Player"}</strong>.
+    </div>
+    <div class="info" id="countdownDisplay">
+      Next round in: ${countdown}
+    </div>
+  </div>
+`;
+
+let cdTimer = setInterval(() => {
+  countdown--;
+  if ($("countdownDisplay")) $("countdownDisplay").innerHTML = `Next round in: ${countdown}`;
+  if (countdown === 0) {
+    clearInterval(cdTimer);
+    cs.currentRound += 1;
+    saveState();
+    renderActiveSet();
+  }
+}, 1000);
     });
   });
 }
@@ -656,3 +663,4 @@ showRankingBtn.addEventListener("click", () => {
   renderScoreboard();
   renderRanking();
 })();
+
