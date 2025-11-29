@@ -1,23 +1,30 @@
-* { box-sizing: border-box; }
+* {
+  box-sizing: border-box;
+}
+
 body {
   font-family: Arial, sans-serif;
   margin: 0;
   padding: 16px;
   background: #f3f4f6;
 }
+
 h1 {
   margin-top: 0;
   font-size: 24px;
 }
+
 h2 {
   font-size: 18px;
   margin-bottom: 8px;
 }
+
 .container {
   display: grid;
   grid-template-columns: 1fr 2fr;
   gap: 16px;
 }
+
 .card {
   background: #ffffff;
   border-radius: 8px;
@@ -25,9 +32,16 @@ h2 {
   box-shadow: 0 2px 4px rgba(0,0,0,0.06);
   margin-bottom: 12px;
 }
+
+/* center only the inline cards shown inside active set (like confirm dialogs) */
+#activeSetArea .card {
+  text-align: center;
+}
+
 label {
   font-size: 14px;
 }
+
 input[type="text"],
 input[type="number"],
 select {
@@ -37,6 +51,7 @@ select {
   border: 1px solid #d1d5db;
   width: 100%;
 }
+
 button {
   padding: 6px 10px;
   border-radius: 4px;
@@ -48,14 +63,17 @@ button {
   background: #2563eb;
   color: white;
 }
+
 button[disabled] {
   background: #9ca3af;
   cursor: not-allowed;
 }
+
 .small-btn {
   padding: 4px 8px;
   font-size: 12px;
 }
+
 .pill {
   display: inline-block;
   padding: 4px 8px;
@@ -65,6 +83,7 @@ button[disabled] {
   margin-right: 4px;
   margin-bottom: 4px;
 }
+
 .player-tag {
   display: inline-flex;
   align-items: center;
@@ -75,55 +94,66 @@ button[disabled] {
   font-size: 12px;
   margin: 2px;
 }
+
 .player-tag span {
   margin-right: 6px;
 }
+
 .danger {
   background: #dc2626;
   color: white;
 }
+
 .info {
   font-size: 13px;
   color: #4b5563;
   margin-top: 4px;
 }
+
 table {
   width: 100%;
   border-collapse: collapse;
   font-size: 13px;
   margin-top: 8px;
 }
-th, td {
+
+th,
+td {
   border: 1px solid #e5e7eb;
   padding: 4px 6px;
   text-align: center;
 }
+
 th {
   background: #f9fafb;
 }
+
 .highlight {
   background: #dbeafe;
 }
+
 .flex {
   display: flex;
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
 }
+
+/* Number / player choice buttons */
 .winner-btn {
   padding: 8px 12px;
   border-radius: 999px;
-  border: 2px solid #888;       /* darker border */
+  border: 2px solid #888;   /* darker border */
   background: white;
   cursor: pointer;
-  font-size: 16px;              /* bigger and visible numbers */
-  font-weight: bold;            /* thicker text */
+  font-size: 16px;          /* bigger and visible numbers */
+  font-weight: bold;        /* thicker text */
   width: 36px;
   height: 36px;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #000;                  /* black text */
+  color: #000;              /* black text */
 }
 
 .winner-btn:hover {
@@ -142,13 +172,44 @@ th {
   color: #6b7280;
 }
 
+/* blurred ranking for suspense */
 .blurred {
   filter: blur(6px);
-  pointer-events: none;  /* cannot click inside when blurred */
+  pointer-events: none;
   transition: filter 0.3s ease;
 }
 
-/* ---------- Mobile (Android / small screens) ---------- */
+/* Yes / No buttons for guess confirmation */
+#confirmGuessYes,
+#confirmGuessNo {
+  padding: 8px 14px;
+  margin: 4px;
+  font-size: 14px;
+  border-radius: 6px;
+}
+
+#confirmGuessYes {
+  background: #16a34a; /* green */
+}
+
+#confirmGuessNo {
+  background: #dc2626; /* red */
+}
+
+/* smoother scrolling on mobile for score/ranking */
+#scoreboardArea,
+#rankingArea {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* remove ugly tap highlight on mobile */
+button,
+.winner-btn {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* ---------- Mobile (phones / small screens) ---------- */
 @media (max-width: 768px) {
   body {
     padding: 8px;
@@ -195,18 +256,21 @@ th {
     gap: 6px;
   }
 
-  /* Tables: allow horizontal scroll instead of squishing */
-  #scoreboardArea,
-  #rankingArea {
-    overflow-x: auto;
-  }
-
   table {
     min-width: 480px;        /* prevents text from cramping too much */
     font-size: 12px;
   }
 
-  th, td {
+  th,
+  td {
     padding: 4px;
+  }
+
+  /* Make confirm Yes/No big enough on phones */
+  #confirmGuessYes,
+  #confirmGuessNo {
+    width: 45%;
+    font-size: 16px;
+    padding: 10px;
   }
 }
