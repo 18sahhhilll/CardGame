@@ -9,19 +9,20 @@
   };
 
   const $ = (id) => document.getElementById(id);
-  function showPopup(text, callback = null) {
+function showPopup(content, callback = null) {
   const modal = $("popupModal");
   const textEl = $("popupText");
   const okBtn = $("popupOk");
 
-  // Fallback: if modal not found, use alert so code never breaks
+  // Fallback: if modal not found, use alert so nothing breaks
   if (!modal || !textEl || !okBtn) {
-    alert(text);
+    alert(typeof content === "string" ? content : "Message");
     if (callback) callback();
     return;
   }
 
-  textEl.innerHTML = text;
+  // content can be plain text or HTML
+  textEl.innerHTML = content;
   modal.classList.remove("hidden");   // show modal
 
   okBtn.onclick = () => {
@@ -29,6 +30,26 @@
     if (callback) callback();
   };
 }
+
+function showTop3Popup() {
+  const players = gameState.players;
+  if (!players.length) {
+    showPopup("No players yet.");
+    return;
+  }
+
+  const totals = computeTotals();
+  const sorted = players.slice().sort((a, b) => {
+    const ta = totals[a.id] || 0;
+    const tb = totals[b.id] || 0;
+    if (tb !== ta) return tb - ta;
+    return a.name.localeCompare(b.name);
+  });
+
+  const cardHtml = buildTop3Card(sorted, totals);
+  showPopup(cardHtml);   // same purple card inside popup now
+}
+
 
 
   const playerNameInput = $("playerName");
@@ -638,56 +659,114 @@ function renderScoreboard() {
     return totals;
   }
 
-  function renderRanking() {
-    const players = gameState.players;
-    if (!players.length) {
-      rankingArea.innerHTML = "<span class='info'>No players.</span>";
-      return;
-    }
+function buildTop3Card(sortedPlayers, totals) {
+  if (!sortedPlayers.length) return "";
 
-    const totals = computeTotals();
-    const sorted = players.slice().sort((a, b) => {
-      const ta = totals[a.id] || 0;
-      const tb = totals[b.id] || 0;
-      if (tb !== ta) return tb - ta;
-      return a.name.localeCompare(b.name);
-    });
+  const top = sortedPlayers.slice(0, 3);
 
-    let html = "<table><tr><th>Rank</th><th>Player</th><th>Total Points</th></tr>";
-    let lastScore = null;
-    let lastRank = 0;
-    let index = 0;
+  return `
+    <div class="leaderboard-card">
+      <div class="leaderboard-header">
+        <i class="fa-solid fa-trophy"></i>
+        <span>Leaderboard</span>
+        <i class="fa-solid fa-trophy"></i>
+      </div>
 
-    sorted.forEach(p => {
-      index++;
-      const score = totals[p.id] || 0;
-      let rank;
-      if (score === lastScore) {
-        rank = lastRank;
-      } else {
-        rank = index;
-        lastRank = rank;
-        lastScore = score;
-      }
-      html += `<tr><td>${rank}</td><td>${p.name}</td><td>${score}</td></tr>`;
-    });
+      <div class="podium-container">
+        <div class="podium-box second-place">
+          <div class="medal silver"><i class="fa-solid fa-award"></i></div>
+          <div class="place">2nd</div>
+          <div class="name">${top[1] ? top[1].name : "-"}</div>
+          <div class="score">${top[1] ? (totals[top[1].id] || 0) : "0"} pts</div>
+        </div>
 
-    html += "</table>";
-    rankingArea.innerHTML = html;
+        <div class="podium-box first-place">
+          <div class="medal gold"><i class="fa-solid fa-crown"></i></div>
+          <div class="place">1st</div>
+          <div class="name">${top[0] ? top[0].name : "-"}</div>
+          <div class="score">${top[0] ? (totals[top[0].id] || 0) : "0"} pts</div>
+        </div>
+
+        <div class="podium-box third-place">
+          <div class="medal bronze"><i class="fa-solid fa-award"></i></div>
+          <div class="place">3rd</div>
+          <div class="name">${top[2] ? top[2].name : "-"}</div>
+          <div class="score">${top[2] ? (totals[top[2].id] || 0) : "0"} pts</div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+
+
+
+
+function renderRanking() {
+  const players = gameState.players;
+  if (!players.length) {
+    rankingArea.innerHTML = "<span class='info'>No players.</span>";
     applyRankingBlur();
+    return;
   }
+
+  const totals = computeTotals();
+  const sorted = players.slice().sort((a, b) => {
+    const ta = totals[a.id] || 0;
+    const tb = totals[b.id] || 0;
+    if (tb !== ta) return tb - ta;
+    return a.name.localeCompare(b.name);
+  });
+
+  // top-3 card
+  const cardHtml = buildTop3Card(sorted, totals);
+
+  // full table
+  let tableHtml = "<div class='leaderboard-table-title'>Full ranking:</div>";
+  tableHtml += "<table><tr><th>Rank</th><th>Player</th><th>Total Points</th></tr>";
+
+  let lastScore = null;
+  let lastRank = 0;
+  let index = 0;
+
+  sorted.forEach(p => {
+    index++;
+    const score = totals[p.id] || 0;
+    let rank;
+    if (score === lastScore) {
+      rank = lastRank;
+    } else {
+      rank = index;
+      lastRank = rank;
+      lastScore = score;
+    }
+    tableHtml += `<tr><td>${rank}</td><td>${p.name}</td><td>${score}</td></tr>`;
+  });
+
+  tableHtml += "</table>";
+
+  rankingArea.innerHTML = cardHtml + tableHtml;
+  applyRankingBlur();
+}
+
 
 showRankingBtn.addEventListener("click", () => {
   // always refresh ranking when button is clicked
   renderRanking();
 
-  // then toggle blur state
+  // toggle blur state
   rankingHidden = !rankingHidden;
   applyRankingBlur();
 
   // update button text
   showRankingBtn.textContent = rankingHidden ? "Reveal Ranking" : "Hide Ranking";
+
+  // if we just REVEALED the ranking, show the fancy top-3 popup
+  if (!rankingHidden) {
+    showTop3Popup();
+  }
 });
+
 
   loadState();
   renderPlayers();
