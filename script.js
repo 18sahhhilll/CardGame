@@ -424,9 +424,19 @@ function renderGuessingUI() {
     noBtn.addEventListener("click", () => proceed(false));
 
     // auto-confirm as YES in 3 sec if user doesn't press anything
-    timerId = setTimeout(() => {
-      proceed(true);
-    }, 3000);
+      let countdown = 3;
+      
+      const confirmBox = activeSetArea.querySelector("#countdownAutoConfirm");
+      if (confirmBox) confirmBox.innerHTML = `Auto confirm in ${countdown}`;
+      
+      timerId = setInterval(() => {
+        countdown--;
+        if (confirmBox) confirmBox.innerHTML = `Auto confirm in ${countdown}`;
+        if (countdown === 0) {
+          clearInterval(timerId);
+          proceed(true);
+        }
+      }, 1000);
   }
 }
 
@@ -663,4 +673,5 @@ showRankingBtn.addEventListener("click", () => {
   renderScoreboard();
   renderRanking();
 })();
+
 
