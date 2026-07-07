@@ -1,0 +1,867 @@
+(function() {
+  const STORAGE_KEY = "trumpGameState_v1";
+
+  let gameState = {
+    players: [],           // {id, name, joinedAtSet}
+    sets: [],              // completed sets
+    currentSet: null,      // active set data
+    nextPlayerId: 1
+  };
+
+  const $ = (id) => document.getElementById(id);
+function showPopup(content, callback = null) {
+  const modal = $("popupModal");
+  const textEl = $("popupText");
+  const okBtn = $("popupOk");
+
+  // Fallback: if modal not found, use alert so nothing breaks
+  if (!modal || !textEl || !okBtn) {
+    alert(typeof content === "string" ? content : "Message");
+    if (callback) callback();
+    return;
+  }
+
+  // content can be plain text or HTML
+  textEl.innerHTML = content;
+  modal.classList.remove("hidden");   // show modal
+
+  okBtn.onclick = () => {
+    modal.classList.add("hidden");    // hide modal
+    if (callback) callback();
+  };
+}
+
+function showTop3Popup() {
+  const players = gameState.players;
+  if (!players.length) {
+    showPopup("No players yet.");
+    return;
+  }
+
+  const totals = computeTotals();
+  const sorted = players.slice().sort((a, b) => {
+    const ta = totals[a.id] || 0;
+    const tb = totals[b.id] || 0;
+    if (tb !== ta) return tb - ta;
+    return a.name.localeCompare(b.name);
+  });
+
+  const cardHtml = buildTop3Card(sorted, totals);
+  showPopup(cardHtml);   // same purple card inside popup now
+}
+
+
+
+  const playerNameInput = $("playerName");
+  const addPlayerBtn = $("addPlayerBtn");
+  const playerListDiv = $("playerList");
+
+  const addSetBtn = $("addSetBtn");
+  const currentSetInfoDiv = $("currentSetInfo");
+  const activeSetArea = $("activeSetArea");
+  const newGameBtn = $("newGameBtn");
+
+  const scoreboardArea = $("scoreboardArea");
+  const rankingArea = $("rankingArea");
+  const showRankingBtn = $("showRankingBtn");
+  let rankingHidden = true;  // start blurred
+
+function applyRankingBlur() {
+  if (!rankingArea) return;
+  if (rankingHidden) {
+    rankingArea.classList.add("blurred");
+  } else {
+    rankingArea.classList.remove("blurred");
+  }
+}
+
+
+function startNewSet(cards) {
+  const setIndex = gameState.sets.length;
+  const totalPlayers = gameState.players.length;
+  const defaultStartIndex = setIndex % totalPlayers;
+  const defaultStartPlayerId = gameState.players[defaultStartIndex].id;
+
+  gameState.currentSet = {
+    setNumber: setIndex + 1,
+    cards,
+    startingPlayerId: defaultStartPlayerId,
+    guessOrder: [],
+    guesses: {},
+    wins: {},
+    points: {},
+    stage: "chooseStart",
+    guessIndex: 0,
+    currentRound: 1
+  };
+
+  // clear chooser after selection
+  const chooser = document.getElementById("setSizeChooser");
+  if (chooser) chooser.innerHTML = "";
+
+  saveState();
+  renderCurrentSetInfo();
+  renderActiveSet();
+}
+    const restartSetBtn = $("restartSetBtn");
+    if (restartSetBtn) {
+      restartSetBtn.addEventListener("click", () => {
+        if (!gameState.currentSet) return;
+        if (!confirm("Restart this set from the beginning? Progress in the current set will be lost. Completed sets and rankings are not affected.")) return;
+        restartCurrentSet();
+      });
+    }
+
+    function restartCurrentSet() {
+      const cs = gameState.currentSet;
+      if (!cs) return;
+      const setIndex = gameState.sets.length;
+      const totalPlayers = gameState.players.length;
+      const defaultStartIndex = setIndex % totalPlayers;
+      const defaultStartPlayerId = gameState.players[defaultStartIndex].id;
+
+      gameState.currentSet = {
+        setNumber: cs.setNumber,
+        cards: cs.cards,
+        startingPlayerId: defaultStartPlayerId,
+        guessOrder: [],
+        guesses: {},
+        wins: {},
+        points: {},
+        stage: "chooseStart",
+        guessIndex: 0,
+        currentRound: 1
+      };
+
+      saveState();
+      renderCurrentSetInfo();
+      renderActiveSet();
+    }
+
+    newGameBtn.addEventListener("click", () => {
+  if (!confirm("Are you sure? This will clear the entire game!")) return;
+
+  localStorage.removeItem(STORAGE_KEY);
+
+  gameState = {
+    players: [],
+    sets: [],
+    currentSet: null,
+    nextPlayerId: 1
+  };
+
+  saveState();
+  renderPlayers();
+  renderCurrentSetInfo();
+  renderActiveSet();
+  renderScoreboard();
+  renderRanking();
+});
+
+
+
+  function loadState() {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed && typeof parsed === "object") {
+          gameState = parsed;
+        }
+      }
+    } catch (e) {
+      console.warn("Failed to load state:", e);
+    }
+  }
+
+  function saveState() {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(gameState));
+    } catch (e) {
+      console.warn("Failed to save state:", e);
+    }
+  }
+
+  function renderPlayers() {
+    if (!gameState.players.length) {
+      playerListDiv.innerHTML = "<span class='info'>No players yet. Add some!</span>";
+      return;
+    }
+
+    const html = gameState.players.map(p => `
+      <div class="player-tag">
+        <span>${p.name}</span>
+        <button class="small-btn danger" data-del-player="${p.id}">x</button>
+      </div>
+    `).join("");
+
+    playerListDiv.innerHTML = html;
+
+    const canDelete = !gameState.currentSet;
+    playerListDiv.querySelectorAll("[data-del-player]").forEach(btn => {
+      btn.disabled = !canDelete;
+      btn.addEventListener("click", () => {
+        if (!canDelete) return;
+        const id = parseInt(btn.getAttribute("data-del-player"), 10);
+        deletePlayer(id);
+      });
+    });
+  }
+
+  function deletePlayer(id) {
+    gameState.players = gameState.players.filter(p => p.id !== id);
+    saveState();
+    renderPlayers();
+    renderScoreboard();
+    renderRanking();
+  }
+
+  addPlayerBtn.addEventListener("click", () => {
+    const name = playerNameInput.value.trim();
+    if (!name) {
+      alert("Enter a player name.");
+      return;
+    }
+    if (gameState.currentSet) {
+      alert("You can only add players between sets, not during an active set.");
+      return;
+    }
+    const newPlayer = {
+      id: gameState.nextPlayerId++,
+      name,
+      joinedAtSet: gameState.sets.length
+    };
+    gameState.players.push(newPlayer);
+    playerNameInput.value = "";
+    saveState();
+    renderPlayers();
+    renderScoreboard();
+    renderRanking();
+  });
+
+  addSetBtn.addEventListener("click", () => {
+  if (!gameState.players.length) {
+    alert("Add at least one player before starting a set.");
+    return;
+  }
+  if (gameState.currentSet) {
+    alert("A set is already in progress.");
+    return;
+  }
+
+  const chooser = document.getElementById("setSizeChooser");
+  if (!chooser) return;
+
+  // you can change this array if you want different card counts
+  const sizes = [10, 9, 8, 7, 6, 5, 4, 3, 2, 1];
+
+  let html = `<div class="info">Select number of cards (rounds) for this set:</div><div class="flex" style="margin-top:4px;">`;
+  sizes.forEach(n => {
+    html += `<button class="small-btn" data-set-size="${n}">${n}</button>`;
+  });
+  html += `</div>`;
+
+  chooser.innerHTML = html;
+
+  chooser.querySelectorAll("[data-set-size]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const n = parseInt(btn.getAttribute("data-set-size"), 10);
+      if (!n || n <= 0) return;
+      startNewSet(n);
+    });
+  });
+});
+
+  function renderCurrentSetInfo() {
+    if (!gameState.currentSet) {
+      currentSetInfoDiv.innerHTML = "<span class='info'>No active set.</span>";
+      addPlayerBtn.disabled = false;
+      return;
+    }
+    const cs = gameState.currentSet;
+    addPlayerBtn.disabled = true;
+
+    const startingName = (gameState.players.find(p => p.id === cs.startingPlayerId) || {}).name || "Unknown";
+
+    currentSetInfoDiv.innerHTML = `
+      <div class="pill">Set #${cs.setNumber}</div>
+      <div class="pill">Cards/Rounds: ${cs.cards}</div>
+      <div class="pill">Default starting: ${startingName}</div>
+      <div class="info">Stage: ${cs.stage}</div>
+    `;
+  }
+
+  function renderActiveSet() {
+    if (!gameState.currentSet) {
+      activeSetArea.innerHTML = "<div class='info'>No active set. Click \"Add Set\" to start.</div>";
+      return;
+    }
+
+    const cs = gameState.currentSet;
+
+    if (cs.stage === "chooseStart") {
+      renderChooseStartUI();
+    } else if (cs.stage === "guessing") {
+      renderGuessingUI();
+    } else if (cs.stage === "rounds") {
+      renderRoundsUI();
+    }
+  }
+
+  function renderChooseStartUI() {
+    const cs = gameState.currentSet;
+
+    const options = gameState.players.map(p => `
+      <option value="${p.id}" ${p.id === cs.startingPlayerId ? "selected" : ""}>
+        ${p.name}
+      </option>
+    `).join("");
+
+    activeSetArea.innerHTML = `
+      <div>
+        <div class="info">
+          Choose starting player for Set #${cs.setNumber}.<br>
+          Last player will be automatically decided based on order.
+        </div>
+        <label>Starting Player:</label>
+        <select id="startingPlayerSelect">${options}</select>
+        <button id="confirmStartBtn">Confirm & Start Guessing</button>
+      </div>
+    `;
+
+    $("confirmStartBtn").addEventListener("click", () => {
+      const select = $("startingPlayerSelect");
+      const startId = parseInt(select.value, 10);
+      cs.startingPlayerId = startId;
+
+      const players = gameState.players.slice();
+      const startIndex = players.findIndex(p => p.id === startId);
+      const rotated = players.slice(startIndex).concat(players.slice(0, startIndex));
+      cs.guessOrder = rotated.map(p => p.id);
+
+      cs.stage = "guessing";
+      cs.guessIndex = 0;
+      cs.guesses = {};
+      cs.wins = {};
+      cs.points = {};
+
+      saveState();
+      renderCurrentSetInfo();
+      renderActiveSet();
+    });
+  }
+
+function renderGuessingUI() {
+  const cs = gameState.currentSet;
+  const currentPlayerId = cs.guessOrder[cs.guessIndex];
+  const currentPlayer = gameState.players.find(p => p.id === currentPlayerId);
+
+  const lastPlayerId = cs.guessOrder[cs.guessOrder.length - 1];
+  const lastPlayer = gameState.players.find(p => p.id === lastPlayerId);
+
+  const orderNames = cs.guessOrder
+    .map(id => gameState.players.find(p => p.id === id)?.name || "?")
+    .join(" → ");
+
+  const isLast = cs.guessIndex === cs.guessOrder.length - 1;
+
+  // figure out which guess value is forbidden for last player
+  let forbiddenValue = null;
+  if (isLast) {
+    const sumWithoutCurrent = cs.guessOrder.reduce((sum, id, idx) => {
+      if (idx === cs.guessIndex) return sum;
+      return sum + (cs.guesses[id] || 0);
+    }, 0);
+    const neededToEqualSet = cs.cards - sumWithoutCurrent;
+    if (neededToEqualSet >= 0 && neededToEqualSet <= cs.cards) {
+      forbiddenValue = neededToEqualSet;
+    }
+  }
+
+  // build guess buttons 0..cards
+  let guessButtonsHtml = `<div class="flex" style="margin-top:6px;">`;
+  for (let g = 0; g <= cs.cards; g++) {
+    const disabled = isLast && g === forbiddenValue;
+    guessButtonsHtml += `
+      <button class="winner-btn" data-guess-value="${g}" ${disabled ? "disabled" : ""}>
+        ${g}
+      </button>
+    `;
+  }
+  guessButtonsHtml += `</div>`;
+
+  activeSetArea.innerHTML = `
+    <div>
+      <div class="info">
+        Set #${cs.setNumber}, Cards: ${cs.cards}<br>
+        Guess order: ${orderNames}<br>
+        Last guess must NOT make total guesses = ${cs.cards}.
+      </div>
+      <div style="margin-top:8px;">
+        <strong>Current player:</strong> ${currentPlayer ? currentPlayer.name : "?"}
+      </div>
+      <div class="info" style="margin-top:4px;">
+        Click a number to set the guess (0 to ${cs.cards}).<br>
+        Last player: <strong>${lastPlayer ? lastPlayer.name : "?"}</strong>${forbiddenValue !== null ? ` (cannot choose ${forbiddenValue})` : ""}.
+      </div>
+      ${guessButtonsHtml}
+      <div style="margin-top:8px;">
+        <strong>Current guesses:</strong><br>
+        ${cs.guessOrder.map(id => {
+          const p = gameState.players.find(pl => pl.id === id);
+          const g = cs.guesses[id];
+          return `<span class="pill">${p ? p.name : "?"}: ${g !== undefined ? g : "-"}</span>`;
+        }).join("")}
+      </div>
+    </div>
+  `;
+
+  activeSetArea.querySelectorAll("[data-guess-value]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const val = parseInt(btn.getAttribute("data-guess-value"), 10);
+      handleGuessSelection(val);
+    });
+  });
+
+  function handleGuessSelection(val) {
+    if (isNaN(val) || val < 0 || val > cs.cards) return;
+
+    const currentPlayerId = cs.guessOrder[cs.guessIndex];
+    const currentPlayer = gameState.players.find(p => p.id === currentPlayerId);
+
+    let confirmed = false;
+    let timerId = null;
+    const guessValue = val;
+
+    // show confirm card with Yes / No, auto-YES in 3 sec if no choice
+    activeSetArea.innerHTML = `
+      <div class="card">
+        <div class="info">
+          <strong>${currentPlayer ? currentPlayer.name : "Player"}</strong> guessed <strong>${guessValue}</strong>.
+        </div>
+        <div class="info" style="margin-top:4px;">
+          Confirm this guess?
+        </div>
+        <div style="margin-top:8px;">
+          <button id="confirmGuessYes">Yes</button>
+          <button id="confirmGuessNo" class="danger">No</button>
+        </div>
+        <div class="info" id="countdownAutoConfirm">
+          Auto confirm in 3
+        </div>
+
+      </div>
+    `;
+
+    const yesBtn = document.getElementById("confirmGuessYes");
+    const noBtn = document.getElementById("confirmGuessNo");
+
+    function proceed(accepted) {
+      if (confirmed) return;
+      confirmed = true;
+      if (timerId) clearTimeout(timerId);
+
+      if (!accepted) {
+        // NO → go back to the same player's guessing UI
+        saveState(); // nothing actually changed yet
+        renderActiveSet();
+        return;
+      }
+
+      // YES (or auto-YES) → commit guess and move on
+      cs.guesses[currentPlayerId] = guessValue;
+      saveState();
+
+      const isLastNow = cs.guessIndex === cs.guessOrder.length - 1;
+
+      if (isLastNow) {
+        const totalGuesses = cs.guessOrder.reduce((sum, id) => sum + (cs.guesses[id] || 0), 0);
+
+        // Safety check (should not happen due to forbidden button, but just in case)
+        if (totalGuesses === cs.cards) {
+          alert(`Total guesses = ${totalGuesses}, cannot equal number of cards (${cs.cards}). Please guess again.`);
+          delete cs.guesses[currentPlayerId];
+          saveState();
+          renderActiveSet();
+          return;
+        }
+
+        cs.stage = "rounds";
+        cs.currentRound = 1;
+        cs.wins = {};
+        saveState();
+        renderCurrentSetInfo();
+        renderActiveSet();
+      } else {
+        cs.guessIndex += 1;
+        saveState();
+        renderActiveSet();
+      }
+    }
+
+    yesBtn.addEventListener("click", () => proceed(true));
+    noBtn.addEventListener("click", () => proceed(false));
+
+    // auto-confirm as YES in 3 sec if user doesn't press anything
+      let countdown = 3;
+      
+      const confirmBox = activeSetArea.querySelector("#countdownAutoConfirm");
+      if (confirmBox) confirmBox.innerHTML = `Auto confirm in ${countdown}`;
+      
+      timerId = setInterval(() => {
+        countdown--;
+        if (confirmBox) confirmBox.innerHTML = `Auto confirm in ${countdown}`;
+        if (countdown === 0) {
+          clearInterval(timerId);
+          proceed(true);
+        }
+      }, 1000);
+  }
+}
+
+
+function renderRoundsUI() {
+  const cs = gameState.currentSet;
+  const round = cs.currentRound;
+  const totalRounds = cs.cards;
+
+  if (round > totalRounds) {
+    finishCurrentSet();
+    return;
+  }
+
+  activeSetArea.innerHTML = `
+    <div>
+      <div class="info">
+        Set #${cs.setNumber} — Round ${round} of ${totalRounds}<br>
+        Click the winner for this round (exactly one winner).
+      </div>
+      <div class="flex" style="margin-top:8px;">
+        ${gameState.players.map(p => {
+          return `<button class="winner-btn" data-win-player="${p.id}">${p.name}</button>`;
+        }).join("")}
+      </div>
+
+      <div style="margin-top:8px;">
+        <strong>Wins so far:</strong><br>
+        ${gameState.players.map(p => {
+          const w = cs.wins[p.id] || 0;
+          return `<span class="pill">${p.name}: ${w}</span>`;
+        }).join("")}
+      </div>
+
+      <div style="margin-top:8px;">
+        <strong>Guesses:</strong><br>
+        ${gameState.players.map(p => {
+          const g = cs.guesses[p.id];
+          return `<span class="pill">${p.name}: ${g}</span>`;
+        }).join("")}
+      </div>
+    </div>
+  `;
+
+  activeSetArea.querySelectorAll("[data-win-player]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const id = parseInt(btn.getAttribute("data-win-player"), 10);
+      const player = gameState.players.find(p => p.id === id);
+
+      // Count win now
+      cs.wins[id] = (cs.wins[id] || 0) + 1;
+      // remember exactly what we just did so it can be undone before
+      // the next round starts — does not affect any completed round
+      cs._lastWinner = { round: round, playerId: id };
+      saveState();
+
+      // Show confirmation card and delay next round
+let countdown = 3;
+let undone = false;
+
+activeSetArea.innerHTML = `
+  <div class="card">
+    <div class="info">
+      Round ${round} winner: <strong>${player ? player.name : "Player"}</strong>.
+    </div>
+    <div class="info" id="countdownDisplay">
+      Next round in: ${countdown}
+    </div>
+    <div style="margin-top:10px;">
+      <button id="undoWinnerBtn" class="ghost-felt-btn"><i class="fa-solid fa-rotate-left"></i> Undo Last Winner</button>
+    </div>
+  </div>
+`;
+
+let cdTimer = setInterval(() => {
+  countdown--;
+  if ($("countdownDisplay")) $("countdownDisplay").innerHTML = `Next round in: ${countdown}`;
+  if (countdown === 0) {
+    clearInterval(cdTimer);
+    if (!undone) {
+      cs.currentRound += 1;
+      delete cs._lastWinner;
+      saveState();
+      renderActiveSet();
+    }
+  }
+}, 1000);
+
+const undoBtn = $("undoWinnerBtn");
+if (undoBtn) {
+  undoBtn.addEventListener("click", () => {
+    if (undone) return;
+    undone = true;
+    clearInterval(cdTimer);
+    // only ever reverses the winner pick we just made for THIS round
+    if (cs._lastWinner && cs._lastWinner.round === round) {
+      const lastId = cs._lastWinner.playerId;
+      cs.wins[lastId] = Math.max(0, (cs.wins[lastId] || 0) - 1);
+      delete cs._lastWinner;
+    }
+    saveState();
+    renderActiveSet();
+  });
+}
+    });
+  });
+}
+
+  function finishCurrentSet() {
+    const cs = gameState.currentSet;
+
+    const totalWins = Object.values(cs.wins).reduce((sum, w) => sum + w, 0);
+    if (totalWins !== cs.cards) {
+      alert(`Warning: total wins counted (${totalWins}) do not match card count (${cs.cards}).`);
+    }
+
+    gameState.players.forEach(p => {
+      const id = p.id;
+      const g = cs.guesses[id] || 0;
+      const w = cs.wins[id] || 0;
+      let pts = 0;
+
+      if (w === g) {
+        pts = w + 10;
+      } else if (w < g) {
+        pts = w - g;
+      } else {
+        pts = w;
+      }
+      cs.points[id] = pts;
+    });
+
+    gameState.sets.push(cs);
+    gameState.currentSet = null;
+    saveState();
+
+    renderCurrentSetInfo();
+    renderActiveSet();
+    renderScoreboard();
+    renderRanking();
+    showPopup(`🎉 Set #${cs.setNumber} completed! 🎉`);
+  }
+
+/* =========================================================
+   LEDGER (scoreboard) — compact scorebook rendering only.
+   Underlying data source and rules are unchanged: still reads
+   s.guesses / s.wins / s.points per set, and still respects each
+   player's joinedAtSet visibility rule. Only the presentation
+   (players as columns, sets as rows, compact color-coded badges)
+   has changed so it fits inside the side drawer instead of
+   stacking large cards down the page.
+   ========================================================= */
+function renderScoreboard() {
+  const sets = gameState.sets;
+  const players = gameState.players;
+
+  if (!sets.length || !players.length) {
+    scoreboardArea.innerHTML = "<span class='info'>No sets played yet.</span>";
+    return;
+  }
+
+  let html = `<div class="scorebook-wrap"><table class="scorebook-table">`;
+
+  html += `<thead><tr><th class="scorebook-setcol">Set</th>`;
+  players.forEach(p => {
+    html += `<th>${p.name}</th>`;
+  });
+  html += `</tr></thead><tbody>`;
+
+  sets.forEach((s) => {
+    const setIndex = s.setNumber - 1;
+
+    html += `<tr>
+      <td class="scorebook-setcol">
+        <span class="scorebook-set-badge">Set ${s.setNumber}</span>
+        <span class="scorebook-cards">${s.cards} card${s.cards === 1 ? "" : "s"}</span>
+      </td>`;
+
+    players.forEach(p => {
+      if (setIndex < p.joinedAtSet) {
+        html += `<td class="scorebook-cell empty">—</td>`;
+        return;
+      }
+
+      const g = s.guesses[p.id];
+      const w = s.wins[p.id] || 0;
+      const pts = s.points[p.id];
+
+      if (g === undefined || pts === undefined) {
+        html += `<td class="scorebook-cell empty">—</td>`;
+        return;
+      }
+
+      const isExact = w === g;
+      const ptsSign = pts > 0 ? "+" : "";
+      let badgeClass = "badge-zero";
+      if (pts > 0) {
+        badgeClass = isExact ? "badge-bonus" : "badge-pos";
+      } else if (pts < 0) {
+        badgeClass = "badge-neg";
+      }
+
+      html += `
+        <td class="scorebook-cell">
+          <div class="scorebook-gw">G:${g} W:${w}</div>
+          <div class="scorebook-pts ${badgeClass}">${ptsSign}${pts}</div>
+        </td>`;
+    });
+
+    html += `</tr>`;
+  });
+
+  html += `</tbody></table></div>`;
+  scoreboardArea.innerHTML = html;
+}
+
+
+  function computeTotals() {
+    const totals = {};
+    gameState.players.forEach(p => {
+      let sum = 0;
+      gameState.sets.forEach((s, index) => {
+        if (index >= p.joinedAtSet) {
+          if (typeof s.points[p.id] === "number") {
+            sum += s.points[p.id];
+          }
+        }
+      });
+      totals[p.id] = sum;
+    });
+    return totals;
+  }
+
+function buildTop3Card(sortedPlayers, totals) {
+  if (!sortedPlayers.length) return "";
+
+  const top = sortedPlayers.slice(0, 3);
+
+  return `
+    <div class="leaderboard-card">
+      <div class="leaderboard-header">
+        <i class="fa-solid fa-trophy"></i>
+        <span>Leaderboard</span>
+        <i class="fa-solid fa-trophy"></i>
+      </div>
+
+      <div class="podium-container">
+        <div class="podium-box second-place">
+          <div class="medal silver"><i class="fa-solid fa-award"></i></div>
+          <div class="place">2nd</div>
+          <div class="name">${top[1] ? top[1].name : "-"}</div>
+          <div class="score">${top[1] ? (totals[top[1].id] || 0) : "0"} pts</div>
+        </div>
+
+        <div class="podium-box first-place">
+          <div class="medal gold"><i class="fa-solid fa-crown"></i></div>
+          <div class="place">1st</div>
+          <div class="name">${top[0] ? top[0].name : "-"}</div>
+          <div class="score">${top[0] ? (totals[top[0].id] || 0) : "0"} pts</div>
+        </div>
+
+        <div class="podium-box third-place">
+          <div class="medal bronze"><i class="fa-solid fa-award"></i></div>
+          <div class="place">3rd</div>
+          <div class="name">${top[2] ? top[2].name : "-"}</div>
+          <div class="score">${top[2] ? (totals[top[2].id] || 0) : "0"} pts</div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+
+
+
+
+function renderRanking() {
+  const players = gameState.players;
+  if (!players.length) {
+    rankingArea.innerHTML = "<span class='info'>No players.</span>";
+    applyRankingBlur();
+    return;
+  }
+
+  const totals = computeTotals();
+  const sorted = players.slice().sort((a, b) => {
+    const ta = totals[a.id] || 0;
+    const tb = totals[b.id] || 0;
+    if (tb !== ta) return tb - ta;
+    return a.name.localeCompare(b.name);
+  });
+
+  // top-3 card
+  const cardHtml = buildTop3Card(sorted, totals);
+
+  // full table
+  let tableHtml = "<div class='leaderboard-table-title'>Full ranking:</div>";
+  tableHtml += "<table><tr><th>Rank</th><th>Player</th><th>Total Points</th></tr>";
+
+  let lastScore = null;
+  let lastRank = 0;
+  let index = 0;
+
+  sorted.forEach(p => {
+    index++;
+    const score = totals[p.id] || 0;
+    let rank;
+    if (score === lastScore) {
+      rank = lastRank;
+    } else {
+      rank = index;
+      lastRank = rank;
+      lastScore = score;
+    }
+    tableHtml += `<tr><td>${rank}</td><td>${p.name}</td><td>${score}</td></tr>`;
+  });
+
+  tableHtml += "</table>";
+
+  rankingArea.innerHTML = cardHtml + tableHtml;
+  applyRankingBlur();
+}
+
+
+showRankingBtn.addEventListener("click", () => {
+  // always refresh ranking when button is clicked
+  renderRanking();
+
+  // toggle blur state
+  rankingHidden = !rankingHidden;
+  applyRankingBlur();
+
+  // update button text
+  showRankingBtn.textContent = rankingHidden ? "Reveal Ranking" : "Hide Ranking";
+
+  // if we just REVEALED the ranking, show the fancy top-3 popup
+  if (!rankingHidden) {
+    showTop3Popup();
+  }
+});
+
+
+  loadState();
+  renderPlayers();
+  renderCurrentSetInfo();
+  renderActiveSet();
+  renderScoreboard();
+  renderRanking();
+})();

@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>The Trump Table</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700;9..144,900&family=Manrope:wght@500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+<link rel="stylesheet" href="style.css">
+</head>
+<body data-phase="lobby">
+
+  <!-- ================= FELT TABLE BACKGROUND ================= -->
+  <div class="table-bg" aria-hidden="true">
+    <div class="felt-vignette"></div>
+    <div class="stitch-ring"></div>
+    <div class="suit-mark s1"><i class="fa-solid fa-spade"></i></div>
+    <div class="suit-mark s2"><i class="fa-solid fa-heart"></i></div>
+    <div class="suit-mark s3"><i class="fa-solid fa-diamond"></i></div>
+    <div class="suit-mark s4"><i class="fa-solid fa-club"></i></div>
+    <div class="suit-mark s5"><i class="fa-solid fa-spade"></i></div>
+  </div>
+
+  <!-- ================= HUD BAR ================= -->
+  <header class="hud-bar">
+    <div class="hud-plaque">
+      <span class="hud-eyebrow"><i class="fa-solid fa-diamond"></i> House Rules Apply</span>
+      <h1 class="hud-title">The Trump <span>Table</span></h1>
+    </div>
+    <div class="hud-right">
+      <div class="hud-chip" id="hudPhaseChip"><i class="fa-solid fa-circle-dot"></i> <span id="hudPhaseText">Lobby</span></div>
+      <button id="viewResultsBtn" class="felt-btn gold-felt" title="See champion &amp; statistics">
+        <i class="fa-solid fa-trophy"></i> <span>View Results</span>
+      </button>
+      <button id="newGameBtn" class="felt-btn danger-felt" title="Wipe everything and start fresh">
+        <i class="fa-solid fa-rotate-left"></i> <span>New Game</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- ================= LOBBY SCREEN ================= -->
+  <main class="screen screen-lobby">
+
+    <section class="roster-panel">
+      <h2><i class="fa-solid fa-chess-board icon-gold"></i> Seats at the Table</h2>
+      <div class="seat-form">
+        <input type="text" id="playerName" placeholder="Name a new player…">
+        <button id="addPlayerBtn" class="felt-btn gold-felt"><i class="fa-solid fa-user-plus"></i></button>
+      </div>
+      <p class="felt-note">Players are seated in the order they join. Seats can only be cleared between sets.</p>
+      <div id="playerList" class="player-list"></div>
+    </section>
+
+    <section class="deal-panel">
+      <h2><i class="fa-solid fa-layer-group icon-gold"></i> Deal the Cards</h2>
+      <p class="felt-note">Each set deals a hand of cards equal to its round count. Every player bids a guess &mdash; but the table's total guesses may never equal the cards dealt.</p>
+      <button id="addSetBtn" class="felt-btn gold-felt full-width"><i class="fa-solid fa-hand-holding-heart"></i> Deal a New Set</button>
+      <div id="setSizeChooser" class="set-size-chooser"></div>
+      <div id="currentSetInfo" class="current-set-info"></div>
+    </section>
+
+  </main>
+
+  <!-- ================= GAME SCREEN ================= -->
+  <main class="screen screen-game">
+
+    <section class="table-center">
+      <div class="table-center-toprow">
+        <h2 class="table-center-heading"><i class="fa-solid fa-dice icon-gold"></i> On the Table</h2>
+        <button id="restartSetBtn" class="ghost-felt-btn" title="Restart this set from the beginning">
+          <i class="fa-solid fa-arrow-rotate-left"></i> Restart Set
+        </button>
+      </div>
+      <div id="activeSetArea" class="active-set-area">
+        <div class="info">No active set. Deal a new set to begin.</div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ================= LEADERBOARD DRAWER (persistent across phases) =================
+       #showRankingBtn stays in the DOM (script.js binds its click handler and
+       toggles game-state-free UI text on it) but is visually hidden — the
+       STANDINGS header below is the real, fully-interactive toggle and just
+       forwards its click to this original button so no game logic changes. -->
+  <button id="showRankingBtn" class="visually-hidden-toggle" tabindex="-1" aria-hidden="true">Reveal Ranking</button>
+  <div class="leaderboard-drawer">
+    <button id="standingsToggle" class="drawer-handle" aria-expanded="false">
+      <i class="fa-solid fa-chevron-up drawer-arrow"></i> Standings
+    </button>
+    <div class="ranking-collapse"><div>
+      <div id="rankingArea" class="ranking-area blurred"></div>
+    </div></div>
+  </div>
+
+  <!-- ================= LEDGER TAB + SIDE DRAWER =================
+       Visual/interaction only — #scoreboardArea keeps its id and is
+       still populated exclusively by script.js's renderScoreboard().
+       No game logic lives here, just where and how it's displayed. -->
+  <button id="ledgerTabBtn" class="ledger-tab" aria-expanded="false" aria-controls="ledgerDrawer" title="Open the Ledger">
+    <i class="fa-solid fa-scroll"></i> <span>Ledger</span>
+  </button>
+  <div class="ledger-drawer-backdrop" id="ledgerDrawerBackdrop"></div>
+  <aside class="ledger-drawer" id="ledgerDrawer" aria-hidden="true">
+    <div class="ledger-drawer-header">
+      <h2><i class="fa-solid fa-scroll icon-gold"></i> The Ledger</h2>
+      <button class="ledger-drawer-close" id="ledgerDrawerClose" aria-label="Close ledger" title="Close">✕</button>
+    </div>
+    <div id="scoreboardArea" class="info scoreboard-area">No sets played yet.</div>
+  </aside>
+
+  <div class="footer-note">
+    <i class="fa-solid fa-circle-info"></i>
+    Exact guess &rarr; wins + 10 bonus &nbsp;&bull;&nbsp; Under-guess &rarr; points = wins &nbsp;&bull;&nbsp; Over-guess &rarr; points = wins &minus; guess.
+    Total guesses may be less or more than the cards dealt, but never equal.
+  </div>
+
+  <!-- ================= MODAL ================= -->
+  <div id="popupModal" class="modal hidden">
+    <div class="modal-content">
+      <button class="modal-close" id="modalCloseBtn" aria-label="Close" title="Close">✕</button>
+      <div class="modal-glow-ring"></div>
+      <i class="fa-solid fa-star modal-icon"></i>
+      <div id="popupText" class="popup-text"></div>
+      <button id="popupOk" class="popup-btn"><i class="fa-solid fa-check"></i> OK</button>
+    </div>
+  </div>
+
+  <!-- ================= VICTORY / STATISTICS SCREEN =================
+       Populated and toggled entirely by effects.js from data it reads
+       (never writes) out of the same localStorage state script.js
+       maintains — no game logic lives here. -->
+  <div id="victoryScreen" class="victory-screen hidden" aria-hidden="true"></div>
+
+  <script src="script.js"></script>
+  <script src="effects.js"></script>
+</body>
+</html>

@@ -1,0 +1,877 @@
+/* =========================================================
+   THE TRUMP TABLE — a felt-and-gold card-table game interface.
+   All original IDs / classes required by script.js preserved.
+   ========================================================= */
+
+:root{
+  --ink:            #060b09;
+  --felt-deep:      #0a2b20;
+  --felt:           #0f3d2c;
+  --felt-light:     #175a3f;
+  --felt-rail:      #08201795;
+  --gold:           #d4af37;
+  --gold-light:     #f3dd8d;
+  --gold-dim:       #9c8138;
+  --cream:          #f4ecd8;
+  --cream-dim:      #cfc4a4;
+  --burgundy:       #832233;
+  --burgundy-light: #b4384c;
+  --sapphire:       #2e6f9e;
+  --sapphire-light: #58a3d6;
+  --text:           var(--cream);
+  --text-dim:       rgba(244,236,216,0.62);
+  --border:         rgba(212,175,55,0.28);
+  --glass:          rgba(244,236,216,0.045);
+  --glass-strong:   rgba(244,236,216,0.08);
+  --radius-lg:      20px;
+  --radius-md:      14px;
+  --radius-sm:      10px;
+  --shadow-deep:    0 24px 60px rgba(0,0,0,0.55);
+  --font-display:   'Fraunces', serif;
+  --font-body:      'Manrope', sans-serif;
+  --font-mono:      'Space Mono', monospace;
+}
+
+*{ box-sizing:border-box; }
+html{ color-scheme: dark; }
+
+body{
+  margin:0;
+  min-height:100vh;
+  font-family: var(--font-body);
+  color: var(--text);
+  background: var(--ink);
+  position:relative;
+  overflow-x:hidden;
+  -webkit-tap-highlight-color: transparent;
+  padding-bottom: 120px;
+}
+
+::selection{ background: var(--gold); color:#1a1400; }
+
+button:focus-visible, input:focus-visible, select:focus-visible{
+  outline: 2px solid var(--sapphire-light);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce){
+  *, *::before, *::after{ animation-duration:.001ms !important; animation-iteration-count:1 !important; transition-duration:.001ms !important; }
+}
+
+/* =========================================================
+   FELT TABLE BACKGROUND
+   ========================================================= */
+.table-bg{
+  position:fixed; inset:0; z-index:-1; overflow:hidden;
+  background:
+    radial-gradient(ellipse 120% 90% at 50% 15%, var(--felt-light) 0%, var(--felt) 42%, var(--felt-deep) 75%, var(--ink) 100%);
+}
+.felt-vignette{
+  position:absolute; inset:0;
+  background: radial-gradient(ellipse 90% 80% at 50% 30%, transparent 40%, rgba(0,0,0,0.55) 100%);
+}
+.stitch-ring{
+  position:absolute;
+  top:6%; left:50%; width:min(1400px,150vw); height:min(1400px,150vw);
+  transform:translateX(-50%);
+  border-radius:50%;
+  border: 2px dashed rgba(212,175,55,0.14);
+}
+.suit-mark{
+  position:absolute;
+  color: rgba(212,175,55,0.06);
+  font-size: 60px;
+  animation: suitDrift 24s ease-in-out infinite;
+}
+.suit-mark.s1{ top:8%; left:6%; font-size:70px; }
+.suit-mark.s2{ top:70%; left:10%; font-size:44px; animation-delay:-4s; color:rgba(180,56,76,0.07); }
+.suit-mark.s3{ top:14%; left:86%; font-size:80px; animation-delay:-9s; }
+.suit-mark.s4{ top:78%; left:82%; font-size:50px; animation-delay:-2s; color:rgba(88,163,214,0.07); }
+.suit-mark.s5{ top:44%; left:48%; font-size:36px; animation-delay:-13s; }
+@keyframes suitDrift{
+  0%,100%{ transform: translateY(0) rotate(0deg); }
+  50%{ transform: translateY(-22px) rotate(8deg); }
+}
+
+/* =========================================================
+   HUD BAR
+   ========================================================= */
+.hud-bar{
+  display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap;
+  max-width:1180px; margin: 18px auto 26px; padding: 16px 24px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, rgba(15,61,44,0.9), rgba(10,43,32,0.9));
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-deep), inset 0 1px 0 rgba(255,255,255,0.05);
+}
+.hud-eyebrow{
+  display:inline-flex; align-items:center; gap:6px;
+  font-size:10.5px; font-weight:700; letter-spacing:2px; text-transform:uppercase;
+  color: var(--gold-light);
+}
+.hud-title{
+  font-family: var(--font-display);
+  font-weight:700; font-size: clamp(22px,3.4vw,32px);
+  margin: 2px 0 0; letter-spacing:.2px; color: var(--cream);
+}
+.hud-title span{ color: var(--gold); font-style:italic; }
+
+.hud-right{ display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
+.hud-chip{
+  display:inline-flex; align-items:center; gap:7px;
+  padding:8px 14px; border-radius:999px;
+  background: rgba(212,175,55,0.12); border:1px solid var(--border);
+  font-size:12px; font-weight:700; letter-spacing:.4px; text-transform:uppercase;
+  color: var(--gold-light);
+}
+.hud-chip i{ font-size:8px; color: var(--sapphire-light); }
+body[data-phase="playing"] .hud-chip i{ color: var(--burgundy-light); animation: pulseSoft 1.4s ease-in-out infinite; }
+
+/* =========================================================
+   BUTTONS
+   ========================================================= */
+button{ font-family: var(--font-body); cursor:pointer; border:none; color:#fff; position:relative; overflow:hidden; isolation:isolate; }
+button:disabled{ cursor:not-allowed; opacity:.5; filter:grayscale(.4); }
+
+/* fallback style for any un-classed button script.js generates */
+button{
+  background: linear-gradient(160deg, var(--felt-light), var(--felt));
+  border:1px solid var(--border);
+  padding: 10px 16px; border-radius: var(--radius-sm);
+  font-weight:700; font-size:14px; margin:4px 6px 4px 0; color: var(--cream);
+  box-shadow: 0 6px 16px rgba(0,0,0,0.35);
+  transition: transform .16s ease, box-shadow .16s ease, filter .16s ease;
+}
+button:hover:not(:disabled){ transform: translateY(-2px); box-shadow:0 10px 22px rgba(0,0,0,0.45); }
+button:active:not(:disabled){ transform: translateY(0) scale(.96); }
+
+.felt-btn{
+  font-family: var(--font-body);
+  border-radius: 999px;
+  padding: 12px 20px;
+  font-weight:800; font-size:13.5px; letter-spacing:.3px;
+}
+.gold-felt{
+  background: linear-gradient(160deg, var(--gold-light), var(--gold-dim));
+  color: #241b00;
+  box-shadow: 0 8px 22px rgba(212,175,55,0.35);
+  border:1px solid rgba(255,255,255,0.3);
+}
+.danger-felt{
+  background: rgba(131,34,51,0.18);
+  border: 1px solid rgba(180,56,76,0.5);
+  color: #ffd9de;
+}
+.danger-felt:hover:not(:disabled){ background: rgba(131,34,51,0.35); box-shadow: 0 0 18px rgba(180,56,76,0.35); }
+.full-width{ width:100%; display:flex; align-items:center; justify-content:center; gap:8px; }
+
+.ghost-felt-btn{
+  background: rgba(212,175,55,0.08);
+  border: 1px solid var(--border);
+  color: var(--gold-light);
+  padding: 8px 14px;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 12.5px;
+  display:inline-flex; align-items:center; gap:7px;
+  box-shadow:none;
+  margin:0;
+}
+.ghost-felt-btn:hover:not(:disabled){ background: rgba(212,175,55,0.18); transform: translateY(-1px); }
+
+.table-center-toprow{
+  display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;
+  margin-bottom: 14px;
+}
+.table-center-toprow h2{ margin:0; }
+
+.danger, button.danger{
+  background: linear-gradient(160deg, var(--burgundy-light), var(--burgundy));
+}
+.small-btn{ padding:6px 11px; font-size:12px; border-radius:999px; margin:0; }
+
+.ripple{
+  position:absolute; border-radius:50%; background: rgba(255,255,255,0.5);
+  transform:scale(0); animation: rippleAnim .6s ease-out forwards; pointer-events:none; z-index:5;
+}
+@keyframes rippleAnim{ to{ transform:scale(3.2); opacity:0; } }
+
+/* =========================================================
+   SCREENS (phase switching — pure CSS, driven by body[data-phase])
+   ========================================================= */
+.screen{
+  max-width: 1180px; margin: 0 auto; padding: 0 18px 24px;
+  display:grid; gap:18px;
+  animation: sceneIn .45s ease both;
+}
+@keyframes sceneIn{ from{ opacity:0; transform: translateY(14px); } to{ opacity:1; transform:translateY(0); } }
+
+.screen-lobby{ grid-template-columns: 1fr 1fr; }
+/* Ledger panel now lives in its own side drawer (see LEDGER section
+   below), so the game screen only has the table-center card left and
+   can use the full width instead of splitting into two columns. */
+.screen-game{ grid-template-columns: 1fr; }
+
+body[data-phase="lobby"] .screen-game{ display:none; }
+body[data-phase="playing"] .screen-lobby{ display:none; }
+
+@media (max-width:920px){
+  .screen-lobby{ grid-template-columns:1fr; }
+}
+
+/* shared panel look */
+.roster-panel, .deal-panel, .table-center, .ledger-panel{
+  background: linear-gradient(180deg, var(--glass-strong), var(--glass)), linear-gradient(160deg, rgba(15,61,44,0.55), rgba(6,11,9,0.7));
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 20px 20px 18px;
+  box-shadow: var(--shadow-deep), inset 0 1px 0 rgba(255,255,255,0.04);
+}
+
+.roster-panel h2, .deal-panel h2, .table-center h2, .ledger-panel h2{
+  font-family: var(--font-display);
+  font-size: 17px; font-weight:700; margin:0 0 14px;
+  display:flex; align-items:center; gap:9px; color:#fff;
+}
+.icon-gold{ color: var(--gold); filter: drop-shadow(0 0 6px rgba(212,175,55,0.5)); }
+
+.felt-note{ font-size:12.5px; color: var(--text-dim); line-height:1.55; margin: 0 0 12px; }
+.info{ font-size: 12.5px; color: var(--text-dim); line-height:1.55; }
+
+label{ font-size:12.5px; color: var(--text-dim); font-weight:700; display:block; margin-bottom:6px; }
+
+.seat-form{ display:flex; gap:8px; margin-bottom:10px; }
+input[type="text"], select{
+  background: rgba(0,0,0,0.25);
+  border:1px solid var(--border);
+  color: var(--text);
+  padding: 11px 13px; border-radius: var(--radius-sm);
+  font-size:14px; width:100%;
+  transition: border-color .2s ease, box-shadow .2s ease;
+}
+input[type="text"]:focus, select:focus{ border-color: var(--gold); box-shadow: 0 0 0 3px rgba(212,175,55,0.2); outline:none; }
+select{ margin: 6px 0 12px; }
+
+.flex{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+
+/* =========================================================
+   PLAYER SEATS  (script.js writes .player-tag > span, do not rename)
+   ========================================================= */
+.player-list{ margin-top:6px; display:grid; grid-template-columns: repeat(auto-fill,minmax(140px,1fr)); gap:10px; }
+
+.player-tag{
+  display:flex; flex-direction:column; align-items:center; gap:8px;
+  padding: 16px 10px 12px;
+  border-radius: var(--radius-md);
+  background: linear-gradient(160deg, rgba(212,175,55,0.08), rgba(0,0,0,0.2));
+  border: 1px solid var(--border);
+  font-size:13px; font-weight:700; text-align:center;
+  animation: seatIn .3s ease both;
+  transition: transform .15s ease, border-color .15s ease;
+}
+.player-tag:hover{ transform: translateY(-3px); border-color: var(--gold); }
+.player-tag span{ display:flex; flex-direction:column; align-items:center; gap:8px; }
+@keyframes seatIn{ from{ opacity:0; transform: scale(.85); } to{ opacity:1; transform:scale(1); } }
+
+.avatar-badge{
+  width:34px; height:34px; border-radius:50%;
+  display:inline-flex; align-items:center; justify-content:center;
+  font-family: var(--font-display); font-weight:800; font-size:14px; color:#fff; flex-shrink:0;
+  box-shadow: 0 0 0 2px rgba(255,255,255,0.15), 0 2px 8px rgba(0,0,0,0.4);
+}
+.avatar-badge.lg{ width:64px; height:64px; font-size:24px; box-shadow: 0 0 0 3px rgba(255,255,255,0.22), 0 0 24px currentColor; }
+
+/* =========================================================
+   PILLS
+   ========================================================= */
+.pill{
+  display:inline-flex; align-items:center; padding:5px 12px; border-radius:999px;
+  background: rgba(212,175,55,0.1); border:1px solid var(--border);
+  font-size:12px; font-weight:700; margin:0 6px 6px 0; color: var(--cream);
+  font-family: var(--font-mono);
+}
+.current-set-info{ margin-top: 12px; }
+
+/* =========================================================
+   DECK OF CARDS — set size chooser overlay
+   ========================================================= */
+#setSizeChooser{ margin-top: 6px; }
+#setSizeChooser:has([data-set-size]){
+  position: fixed; inset: 0; z-index: 500;
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:22px;
+  background: radial-gradient(ellipse 90% 70% at 50% 40%, rgba(15,61,44,0.97), rgba(2,5,4,0.99));
+  animation: fadeIn .25s ease;
+  padding: 24px;
+}
+#setSizeChooser:has([data-set-size])::before{
+  content: "Choose your deal size";
+  font-family: var(--font-display);
+  font-size: clamp(20px,4vw,30px);
+  font-weight:700;
+  color: var(--gold-light);
+  text-shadow: 0 0 30px rgba(212,175,55,0.4);
+}
+#setSizeChooser .info{ display:none; }
+#setSizeChooser:has([data-set-size]) .flex{
+  display:flex; flex-wrap:wrap; justify-content:center; gap:14px; max-width: 640px;
+}
+button[data-set-size]{
+  width: 64px; height: 92px;
+  border-radius: 10px;
+  background: linear-gradient(160deg, var(--cream), #e4d8b4);
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-weight:800; font-size: 26px;
+  border: 1px solid rgba(0,0,0,0.15);
+  box-shadow: 0 10px 24px rgba(0,0,0,0.5);
+  display:flex; align-items:center; justify-content:center;
+  margin:0;
+  transition: transform .18s ease, box-shadow .18s ease;
+  animation: dealIn .4s ease both;
+}
+button[data-set-size]:nth-child(odd){ transform: rotate(-3deg); }
+button[data-set-size]:nth-child(even){ transform: rotate(3deg); }
+button[data-set-size]:hover{ transform: translateY(-14px) rotate(0deg) scale(1.05); box-shadow: 0 18px 34px rgba(212,175,55,0.35); }
+button[data-set-size]:focus-visible{ transform: translateY(-14px) rotate(0deg) scale(1.05); box-shadow: 0 0 0 3px var(--sapphire-light), 0 18px 34px rgba(212,175,55,0.35); }
+@keyframes dealIn{ from{ opacity:0; transform: translateY(40px) rotate(0deg); } }
+
+/* brief shuffle flourish before the cards become selectable —
+   effects.js toggles this class off again after ~700ms */
+#setSizeChooser.deck-shuffling [data-set-size]{
+  pointer-events:none;
+  animation: cardShuffle .7s ease;
+}
+#setSizeChooser.deck-shuffling::after{
+  content: "";
+}
+@keyframes cardShuffle{
+  0%{ transform: translate(0,0) rotate(0deg) scale(.9); opacity:0; }
+  35%{ transform: translate(-6px,-4px) rotate(-6deg) scale(1.02); opacity:1; }
+  60%{ transform: translate(4px,2px) rotate(4deg) scale(1); }
+  100%{ transform: translate(0,0) rotate(var(--deal-tilt, 0deg)) scale(1); }
+}
+button[data-set-size]:nth-child(odd){ --deal-tilt: -3deg; }
+button[data-set-size]:nth-child(even){ --deal-tilt: 3deg; }
+
+/* =========================================================
+   TABLE CENTER / ACTIVE SET (gameplay HUD)
+   ========================================================= */
+.table-center{
+  background:
+    radial-gradient(120% 140% at 50% 0%, rgba(212,175,55,0.12), transparent 55%),
+    linear-gradient(180deg, var(--glass-strong), var(--glass)), linear-gradient(160deg, rgba(15,61,44,0.55), rgba(6,11,9,0.75));
+  border-color: rgba(212,175,55,0.35);
+}
+.table-center-heading{ justify-content:center; text-align:center; }
+.active-set-area{ min-height: 160px; }
+.active-set-area strong{ color:#fff; }
+
+/* "Current player:" line becomes a spotlight banner via effects.js */
+.turn-banner{
+  display:flex; align-items:center; justify-content:center; gap:16px; text-align:left;
+  padding: 18px 22px; border-radius: var(--radius-md);
+  background: linear-gradient(135deg, rgba(212,175,55,0.16), rgba(15,61,44,0.3));
+  border: 1px solid rgba(212,175,55,0.4);
+  margin-bottom: 16px;
+  animation: turnPulse 2.2s ease-in-out infinite, sceneIn .4s ease both;
+  box-shadow: 0 0 34px rgba(212,175,55,0.14);
+}
+.turn-banner .turn-label{ font-family: var(--font-display); font-size:11px; letter-spacing:2px; color: var(--gold-light); font-weight:700; display:block; text-transform:uppercase; }
+.turn-banner .turn-name{ font-family: var(--font-display); font-size:26px; font-weight:800; color:#fff; }
+@keyframes turnPulse{ 0%,100%{ box-shadow:0 0 20px rgba(212,175,55,0.14); } 50%{ box-shadow:0 0 40px rgba(212,175,55,0.32); } }
+
+/* winner / guess chips generated by script.js -> poker-chip style */
+.winner-btn{
+  padding:0; border-radius:999px; border: 3px solid rgba(244,236,216,0.18);
+  background: radial-gradient(circle at 35% 30%, var(--felt-light), var(--felt-deep));
+  cursor:pointer; font-family: var(--font-mono); font-size:15px; font-weight:700;
+  width:50px; height:50px; min-width:50px;
+  display:inline-flex; align-items:center; justify-content:center;
+  color:#fff; margin:4px;
+  box-shadow: 0 5px 14px rgba(0,0,0,0.45), inset 0 0 0 3px rgba(0,0,0,0.25);
+  transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease;
+}
+.winner-btn:not([data-guess-value]){
+  width:auto; min-width:96px; padding:0 18px; border-radius: var(--radius-md); gap:8px;
+  font-family: var(--font-body); font-weight:700;
+  background: linear-gradient(160deg, var(--felt-light), var(--felt));
+}
+.winner-btn:hover:not(:disabled){ transform: translateY(-4px) scale(1.06); border-color: var(--gold); box-shadow: 0 10px 22px rgba(212,175,55,0.35); }
+.winner-btn:active:not(:disabled){ transform: translateY(0) scale(.94); }
+.winner-btn:disabled{
+  background: rgba(255,255,255,0.03); border-color: rgba(255,255,255,0.08); color: rgba(255,255,255,0.3);
+  box-shadow:none;
+}
+.winner-btn .lock-icon{ font-size:13px; color: rgba(255,255,255,0.5); }
+
+#countdownDisplay, #countdownAutoConfirm{
+  display:inline-flex; align-items:center; justify-content:center; gap:8px;
+  margin-top:16px; padding: 10px 22px; border-radius:999px;
+  background: rgba(212,175,55,0.12); border: 1px solid rgba(212,175,55,0.4);
+  font-family: var(--font-mono); font-weight:700; font-size:14px; color: var(--gold-light);
+  animation: ringPulse 1s ease-in-out infinite;
+}
+@keyframes ringPulse{ 0%,100%{ box-shadow:0 0 0 rgba(212,175,55,0); } 50%{ box-shadow:0 0 20px rgba(212,175,55,0.4); } }
+
+#startingPlayerSelect{ max-width:280px; }
+
+/* generic .card used by script.js confirm/round-winner interstitials */
+.card{
+  background: linear-gradient(160deg, rgba(212,175,55,0.08), rgba(0,0,0,0.25));
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  text-align:center;
+  animation: sceneIn .3s ease both;
+}
+
+/* =========================================================
+   LEDGER TAB (side drawer trigger)
+   ========================================================= */
+.ledger-tab{
+  position: fixed;
+  top: 50%;
+  right: 0;
+  transform: translateY(-50%);
+  z-index: 650;
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+  display:flex; align-items:center; gap:8px;
+  padding: 18px 11px;
+  margin:0;
+  border-radius: 12px 0 0 12px;
+  background: linear-gradient(160deg, var(--gold-light), var(--gold-dim));
+  color:#241b00;
+  font-family: var(--font-display);
+  font-weight:800; font-size:14px; letter-spacing:2px;
+  box-shadow: -6px 0 20px rgba(0,0,0,0.35);
+  transition: opacity .2s ease, transform .18s ease, box-shadow .18s ease;
+}
+.ledger-tab:hover:not(:disabled){ transform: translateY(-50%) translateX(-3px); box-shadow: -8px 0 26px rgba(212,175,55,0.4); }
+.ledger-tab i{ writing-mode: horizontal-tb; font-size:13px; }
+body[data-ledger-open="true"] .ledger-tab{ opacity:0; pointer-events:none; }
+
+/* =========================================================
+   LEDGER DRAWER (slides in from the right, wide scorebook view)
+   ========================================================= */
+.ledger-drawer-backdrop{
+  position: fixed; inset:0; z-index: 640;
+  background: rgba(2,5,4,0.6);
+  backdrop-filter: blur(2px); -webkit-backdrop-filter: blur(2px);
+  opacity:0; pointer-events:none;
+  transition: opacity .3s ease;
+}
+body[data-ledger-open="true"] .ledger-drawer-backdrop{ opacity:1; pointer-events:auto; }
+
+.ledger-drawer{
+  position: fixed; top:0; right:0; bottom:0; z-index: 645;
+  width: min(920px, 90vw);
+  max-width: 100vw;
+  background: linear-gradient(180deg, rgba(15,61,44,0.98), rgba(6,15,11,0.99));
+  border-left: 1px solid var(--border);
+  box-shadow: -22px 0 54px rgba(0,0,0,0.55);
+  transform: translateX(100%);
+  transition: transform .4s cubic-bezier(.32,.9,.35,1);
+  display:flex; flex-direction:column;
+  padding: 20px 20px 22px;
+}
+body[data-ledger-open="true"] .ledger-drawer{ transform: translateX(0); }
+
+.ledger-drawer-header{
+  display:flex; align-items:center; justify-content:space-between;
+  margin-bottom: 14px; flex-shrink:0;
+}
+.ledger-drawer-header h2{
+  font-family: var(--font-display); font-size:17px; font-weight:700; margin:0;
+  display:flex; align-items:center; gap:9px; color:#fff;
+}
+.ledger-drawer-close{
+  width:34px; height:34px; padding:0; margin:0; border-radius:50%;
+  background: rgba(255,255,255,0.06); border:1px solid var(--border);
+  color: var(--text-dim); font-size:14px; line-height:1;
+  display:flex; align-items:center; justify-content:center;
+  box-shadow:none;
+}
+.ledger-drawer-close:hover{ background: rgba(180,56,76,0.25); color:#fff; border-color: rgba(180,56,76,0.5); }
+
+.ledger-drawer .scoreboard-area{ flex:1; overflow-y:auto; }
+
+/* =========================================================
+   SCOREBOOK TABLE — compact ledger: players as columns, sets
+   as rows, color-coded point badges. Horizontal scroll is
+   contained to .scorebook-wrap only, never the whole page.
+   ========================================================= */
+.scorebook-wrap{
+  overflow-x:auto; overflow-y:visible;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: rgba(0,0,0,0.15);
+}
+.scorebook-table{
+  width:100%; min-width: 460px;
+  border-collapse:collapse; border-spacing:0;
+  font-size:12.5px;
+}
+.scorebook-table thead th{
+  position: sticky; top:0; z-index:2;
+  background: linear-gradient(180deg, rgba(15,61,44,0.98), rgba(15,61,44,0.92));
+  color: var(--gold-light); font-family: var(--font-display); font-size:12px;
+  letter-spacing:.5px; text-transform:uppercase; font-weight:700;
+  padding: 11px 14px; border-bottom: 1px solid var(--border);
+  white-space:nowrap; text-align:center;
+}
+.scorebook-table thead th.scorebook-setcol,
+.scorebook-table td.scorebook-setcol{
+  position: sticky; left:0; z-index:3;
+  background: rgba(10,43,32,0.98);
+  text-align:left; min-width:100px;
+  box-shadow: 2px 0 0 rgba(212,175,55,0.15);
+}
+.scorebook-table thead th.scorebook-setcol{ z-index:4; }
+.scorebook-table tbody td{
+  padding: 9px 12px; text-align:center;
+  border-bottom:1px solid rgba(255,255,255,0.06);
+  white-space:nowrap;
+}
+.scorebook-table tbody tr:hover td{ background: rgba(212,175,55,0.08); }
+.scorebook-table tbody tr:nth-child(odd) td{ background: rgba(244,236,216,0.025); }
+.scorebook-table tbody tr:nth-child(odd) td.scorebook-setcol{ background: rgba(10,43,32,0.98); }
+.scorebook-table tbody tr:hover td.scorebook-setcol{ background: rgba(15,61,44,0.9); }
+
+.scorebook-set-badge{ display:block; font-family: var(--font-display); font-weight:700; color:#fff; font-size:12.5px; }
+.scorebook-cards{ display:block; font-family: var(--font-mono); font-size:10.5px; color: var(--text-dim); margin-top:1px; }
+
+.scorebook-cell.empty{ color: var(--text-dim); opacity:.4; }
+.scorebook-gw{ font-family: var(--font-mono); font-size:11px; color: var(--text-dim); margin-bottom:4px; }
+.scorebook-pts{
+  display:inline-block; font-family: var(--font-mono); font-weight:800; font-size:12px;
+  padding: 2px 10px; border-radius:999px; min-width: 34px;
+}
+.badge-bonus{ color:#123018; background: linear-gradient(160deg, #7fdb9c, #3f8f63); box-shadow: 0 0 10px rgba(63,143,99,0.45); }
+.badge-pos{ color:#241b00; background: linear-gradient(160deg, var(--gold-light), var(--gold-dim)); }
+.badge-neg{ color:#ffd9de; background: rgba(131,34,51,0.55); }
+.badge-zero{ color: var(--text-dim); background: rgba(255,255,255,0.06); }
+
+/* =========================================================
+   LEDGER — legacy per-set score cards (kept in the stylesheet
+   in case script.js output is ever reverted to card markup;
+   unused while renderScoreboard() emits the scorebook table).
+   ========================================================= */
+.ledger-list{ display:flex; flex-direction:column; gap:12px; }
+
+.ledger-set-card{
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: linear-gradient(160deg, rgba(212,175,55,0.05), rgba(0,0,0,0.18));
+  overflow:hidden;
+  animation: sceneIn .35s ease both;
+}
+.ledger-set-header{
+  display:flex; align-items:center; justify-content:space-between;
+  padding: 10px 14px;
+  font-family: var(--font-display); font-weight:700; font-size:13.5px;
+  color: var(--gold-light);
+  background: rgba(212,175,55,0.08);
+  border-bottom: 1px solid var(--border);
+}
+.ledger-set-meta{
+  font-family: var(--font-mono); font-size:11px; color: var(--text-dim); font-weight:400;
+  text-transform:none; letter-spacing:0;
+}
+.ledger-players{ display:flex; flex-direction:column; }
+.ledger-player-row{
+  display:flex; align-items:center; gap:12px; flex-wrap:wrap;
+  padding: 9px 14px;
+  border-top: 1px solid rgba(255,255,255,0.04);
+  font-size:12.5px;
+}
+.ledger-player-row:first-child{ border-top:none; }
+.ledger-player-name{
+  flex: 1 1 110px;
+  font-weight:800; color:#fff;
+  display:flex; align-items:center; gap:7px;
+}
+.ledger-player-name i{ color: var(--gold); font-size:11px; }
+.ledger-stat{
+  display:flex; align-items:center; gap:5px;
+  color: var(--text-dim); font-size:11.5px;
+  font-family: var(--font-mono);
+}
+.ledger-stat i{ font-size:10px; color: var(--sapphire-light); }
+.ledger-stat strong{ color:#fff; font-weight:700; }
+.ledger-points{
+  margin-left:auto;
+  font-family: var(--font-mono); font-weight:800; font-size:13px;
+  padding: 3px 10px; border-radius:999px;
+}
+.ledger-points.pos{ color: var(--gold-light); background: rgba(212,175,55,0.14); }
+.ledger-points.neg{ color: var(--burgundy-light); background: rgba(180,56,76,0.14); }
+.ledger-points.zero{ color: var(--text-dim); background: rgba(255,255,255,0.05); }
+
+/* =========================================================
+   LEADERBOARD DRAWER + FAB
+   ========================================================= */
+/* legacy toggle kept in the DOM for script.js to bind to, but never shown —
+   the STANDINGS header (.drawer-handle) is the real, visible control now */
+.visually-hidden-toggle{
+  position:absolute; width:1px; height:1px; padding:0; margin:-1px;
+  overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; background:none; box-shadow:none;
+}
+
+.leaderboard-drawer{
+  position: fixed; left:0; right:0; bottom:0; z-index: 600;
+  max-width: 620px; margin: 0 auto;
+  background: linear-gradient(180deg, rgba(15,61,44,0.97), rgba(6,15,11,0.99));
+  border: 1px solid var(--border);
+  border-bottom: none;
+  border-radius: 22px 22px 0 0;
+  box-shadow: 0 -14px 40px rgba(0,0,0,0.5);
+  padding: 4px 18px 4px;
+  max-height: 82vh; overflow-y: auto;
+}
+
+.drawer-handle{
+  width:100%;
+  display:flex; align-items:center; justify-content:center; gap:9px;
+  font-family: var(--font-display); font-weight:700; font-size:13px; letter-spacing:1px; text-transform:uppercase;
+  color: var(--gold-light); padding: 14px 0; margin:0;
+  background:transparent; border:none;
+  cursor:pointer;
+}
+.drawer-handle:hover{ color: var(--gold); }
+.drawer-arrow{ font-size:11px; transition: transform .3s ease; }
+/* arrow flips once the standings are revealed */
+.leaderboard-drawer:has(#rankingArea:not(.blurred)) .drawer-arrow{ transform: rotate(180deg); }
+
+/* accordion body — driven purely by whether #rankingArea has the .blurred
+   class script.js already toggles, using a height-animatable grid-rows
+   trick so no JS measuring or extra state is needed */
+.ranking-collapse{
+  display:grid;
+  grid-template-rows: 0fr;
+  opacity:0;
+  transition: grid-template-rows .45s cubic-bezier(.32,.9,.35,1), opacity .3s ease;
+}
+.leaderboard-drawer:has(#rankingArea:not(.blurred)) .ranking-collapse{
+  grid-template-rows: 1fr;
+  opacity:1;
+}
+.ranking-collapse > div{ overflow:hidden; }
+
+.ranking-area{ min-height:40px; padding-bottom: 18px; }
+
+.leaderboard-table-title{
+  font-family: var(--font-display); font-weight:700; font-size:12.5px; color: var(--text-dim);
+  letter-spacing:.5px; text-transform:uppercase; margin-top:14px;
+}
+
+/* stagger the full-ranking rows in as the drawer opens */
+.leaderboard-drawer:has(#rankingArea:not(.blurred)) table tr{ animation: rowStagger .4s ease both; }
+.leaderboard-drawer:has(#rankingArea:not(.blurred)) table tr:nth-child(1){ animation-delay:.05s; }
+.leaderboard-drawer:has(#rankingArea:not(.blurred)) table tr:nth-child(2){ animation-delay:.10s; }
+.leaderboard-drawer:has(#rankingArea:not(.blurred)) table tr:nth-child(3){ animation-delay:.15s; }
+.leaderboard-drawer:has(#rankingArea:not(.blurred)) table tr:nth-child(4){ animation-delay:.20s; }
+.leaderboard-drawer:has(#rankingArea:not(.blurred)) table tr:nth-child(5){ animation-delay:.25s; }
+.leaderboard-drawer:has(#rankingArea:not(.blurred)) table tr:nth-child(n+6){ animation-delay:.3s; }
+@keyframes rowStagger{ from{ opacity:0; transform: translateY(8px); } to{ opacity:1; transform:translateY(0); } }
+
+/* =========================================================
+   FOOTER
+   ========================================================= */
+.footer-note{
+  max-width: 1180px; margin: 20px auto 150px;
+  font-size:11.5px; color: var(--text-dim); text-align:center;
+  padding: 10px 18px; border-radius:999px;
+  background: rgba(0,0,0,0.2); border:1px solid var(--border);
+}
+
+/* =========================================================
+   MODAL / POPUP
+   ========================================================= */
+.modal{
+  position:fixed; inset:0; background: rgba(2,5,4,0.78);
+  backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+  display:flex; align-items:center; justify-content:center; z-index:9999;
+  animation: fadeIn .25s ease;
+}
+.modal.hidden{ display:none; }
+@keyframes fadeIn{ from{ opacity:0; } to{ opacity:1; } }
+
+.modal-content{
+  position:relative;
+  background: linear-gradient(160deg, #123423, #060b09 65%);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 36px 26px 26px;
+  width:440px; max-width:92vw; max-height:88vh; overflow-y:auto;
+  text-align:center;
+  box-shadow: 0 30px 74px rgba(0,0,0,0.6), 0 0 60px rgba(212,175,55,0.18);
+  display:flex; flex-direction:column; justify-content:center; align-items:center; gap:14px;
+  animation: modalBounce .45s cubic-bezier(.34,1.56,.64,1);
+}
+@keyframes modalBounce{
+  0%{ opacity:0; transform: scale(.75) translateY(20px); }
+  70%{ opacity:1; transform: scale(1.03) translateY(-2px); }
+  100%{ transform: scale(1) translateY(0); }
+}
+.modal-close{
+  position:absolute; top:12px; right:12px; z-index:2;
+  width:32px; height:32px; padding:0; margin:0;
+  border-radius:50%;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  font-size:14px; line-height:1;
+  display:flex; align-items:center; justify-content:center;
+  box-shadow:none;
+}
+.modal-close:hover{ background: rgba(180,56,76,0.25); color:#fff; border-color: rgba(180,56,76,0.5); }
+
+.modal-glow-ring{
+  position:absolute; top:-40px; left:50%; width:160px; height:160px; transform: translateX(-50%);
+  background: radial-gradient(circle, rgba(212,175,55,0.35), transparent 70%); filter: blur(10px); pointer-events:none;
+}
+.modal-icon{ font-size:30px; color: var(--gold); filter: drop-shadow(0 0 14px rgba(212,175,55,0.55)); animation: starSpin 3s ease-in-out infinite; }
+@keyframes starSpin{ 0%,100%{ transform: rotate(0deg) scale(1); } 50%{ transform: rotate(15deg) scale(1.15); } }
+
+.popup-text{ font-size:16px; font-weight:700; line-height:1.5; font-family: var(--font-display); }
+.popup-btn{
+  background: linear-gradient(160deg, var(--gold-light), var(--gold-dim));
+  color:#241b00; padding: 10px 28px; border-radius:999px; font-weight:800; font-size:14px;
+  box-shadow: 0 8px 22px rgba(212,175,55,0.4);
+}
+
+.confetti-piece{
+  position:absolute; top:-10px; width:8px; height:14px; opacity:.9;
+  animation: confettiFall linear forwards; pointer-events:none; border-radius:2px;
+}
+@keyframes confettiFall{ to{ transform: translateY(560px) rotate(540deg); opacity:0; } }
+
+/* =========================================================
+   LEADERBOARD PODIUM
+   ========================================================= */
+.leaderboard-card{
+  background: linear-gradient(160deg, var(--felt-light), var(--felt-deep) 70%);
+  color:#fff; border-radius: var(--radius-lg); padding: 26px 18px 22px; text-align:center;
+  margin-bottom:14px; box-shadow: 0 16px 40px rgba(0,0,0,0.4); position:relative; overflow:hidden;
+  border: 1px solid var(--border);
+}
+.leaderboard-card::before{ content:""; position:absolute; inset:0; background: radial-gradient(circle at 30% 0%, rgba(212,175,55,0.18), transparent 55%); }
+
+.leaderboard-header{
+  position:relative; font-family: var(--font-display); font-size:21px; font-weight:800; color: var(--gold-light);
+  display:flex; justify-content:center; align-items:center; gap:10px; margin-bottom:20px; letter-spacing:.5px;
+  text-shadow: 0 0 20px rgba(212,175,55,0.45);
+}
+.leaderboard-header i{ animation: trophyWiggle 2.4s ease-in-out infinite; }
+@keyframes trophyWiggle{ 0%,100%{ transform: rotate(0deg); } 50%{ transform: rotate(-8deg); } }
+
+.podium-container{ position:relative; display:flex; justify-content:center; align-items:flex-end; gap:10px; margin-top:16px; }
+.podium-box{
+  background: rgba(244,236,216,0.09); backdrop-filter: blur(10px);
+  border-radius: var(--radius-md); padding:16px 10px; text-align:center; width:108px;
+  transition: transform .2s ease; animation: podiumRise .5s ease both;
+}
+.podium-box:hover{ transform: translateY(-6px) scale(1.03); }
+.first-place{ height:186px; background: rgba(212,175,55,0.2); border: 2px solid rgba(212,175,55,0.55); order:2; box-shadow: 0 0 30px rgba(212,175,55,0.25); }
+.second-place{ height:152px; background: rgba(226,232,240,0.16); border: 2px solid rgba(226,232,240,0.4); order:1; }
+.third-place{ height:140px; background: rgba(180,56,76,0.16); border: 2px solid rgba(180,56,76,0.4); order:3; }
+@keyframes podiumRise{ from{ opacity:0; transform: translateY(24px); } to{ opacity:1; transform: translateY(0); } }
+
+.medal{ font-size:30px; margin-bottom:8px; }
+.medal.gold{ animation: crownFloat 2.2s ease-in-out infinite; }
+@keyframes crownFloat{ 0%,100%{ transform: translateY(0); } 50%{ transform: translateY(-5px); } }
+.place{ font-size:12px; margin-bottom:6px; font-weight:800; text-transform:uppercase; letter-spacing:1.5px; opacity:.85; }
+.name{ font-size:17px; font-weight:800; margin-bottom:4px; word-wrap:break-word; font-family: var(--font-display); }
+.score{ font-size:13.5px; opacity:.9; font-weight:600; font-family: var(--font-mono); }
+.gold{ color: var(--gold); }
+.silver{ color:#e5e7eb; }
+.bronze{ color: var(--burgundy-light); }
+
+@keyframes pulseSoft{ 0%,100%{ opacity:1; } 50%{ opacity:.6; } }
+
+/* =========================================================
+   VICTORY / STATISTICS SCREEN
+   ========================================================= */
+.victory-screen{
+  position: fixed; inset:0; z-index: 9000;
+  overflow-y:auto;
+  background: radial-gradient(ellipse 90% 70% at 50% 10%, rgba(212,175,55,0.14), transparent 55%), var(--ink);
+  padding: 40px 20px 60px;
+  display:flex; flex-direction:column; align-items:center;
+  animation: fadeIn .3s ease;
+}
+.victory-screen.hidden{ display:none; }
+
+.victory-close{
+  position:fixed; top:18px; right:18px; z-index:2;
+  width:38px; height:38px; border-radius:50%;
+  background: rgba(255,255,255,0.06); border:1px solid var(--border); color: var(--text-dim);
+  display:flex; align-items:center; justify-content:center; font-size:15px; margin:0; box-shadow:none;
+}
+.victory-close:hover{ background: rgba(180,56,76,0.25); color:#fff; }
+
+.victory-eyebrow{
+  font-family: var(--font-display); font-size:12px; font-weight:700; letter-spacing:3px; text-transform:uppercase;
+  color: var(--gold-light); margin-bottom:8px;
+}
+.victory-champion-name{
+  font-family: var(--font-display); font-weight:900; font-size: clamp(32px,6vw,58px);
+  background: linear-gradient(90deg, var(--gold-light), var(--gold), var(--gold-light));
+  -webkit-background-clip:text; background-clip:text; color:transparent;
+  text-shadow: 0 0 50px rgba(212,175,55,0.35);
+  margin: 4px 0 4px;
+  animation: crownFloat 2.4s ease-in-out infinite;
+}
+.victory-champion-score{ font-family: var(--font-mono); font-size:15px; color: var(--text-dim); margin-bottom: 22px; }
+
+.victory-stats-grid{
+  display:grid; grid-template-columns: repeat(auto-fit,minmax(160px,1fr));
+  gap:12px; max-width: 980px; width:100%; margin: 18px 0 28px;
+}
+.victory-stat-card{
+  background: linear-gradient(160deg, var(--glass-strong), var(--glass)), linear-gradient(160deg, rgba(15,61,44,0.55), rgba(6,11,9,0.7));
+  border: 1px solid var(--border); border-radius: var(--radius-md);
+  padding: 16px 14px; text-align:center;
+  animation: podiumRise .45s ease both;
+}
+.victory-stat-icon{ font-size:20px; margin-bottom:8px; color: var(--gold); }
+.victory-stat-label{ font-size:10.5px; letter-spacing:1px; text-transform:uppercase; color: var(--text-dim); font-weight:700; margin-bottom:6px; }
+.victory-stat-value{ font-family: var(--font-mono); font-size:20px; font-weight:700; color:#fff; }
+
+.victory-actions{ display:flex; gap:12px; flex-wrap:wrap; justify-content:center; margin-top: 10px; }
+
+@keyframes fireworkPop{
+  0%{ transform: scale(0); opacity:1; }
+  70%{ opacity:.8; }
+  100%{ transform: scale(2.6); opacity:0; }
+}
+.firework{
+  position:absolute; width:8px; height:8px; border-radius:50%;
+  pointer-events:none;
+  box-shadow:
+    0 0 0 2px currentColor, 24px 0 0 -1px currentColor, -24px 0 0 -1px currentColor,
+    0 24px 0 -1px currentColor, 0 -24px 0 -1px currentColor,
+    17px 17px 0 -1px currentColor, -17px -17px 0 -1px currentColor,
+    17px -17px 0 -1px currentColor, -17px 17px 0 -1px currentColor;
+  animation: fireworkPop 1.1s ease-out forwards;
+}
+
+/* =========================================================
+   RESPONSIVE
+   ========================================================= */
+@media (max-width: 640px){
+  .hud-bar{ padding: 12px 16px; flex-direction:column; align-items:flex-start; border-radius: var(--radius-lg); }
+  .hud-title{ font-size:22px; }
+  .roster-panel, .deal-panel, .table-center, .ledger-panel{ padding:16px; }
+  .winner-btn{ width:44px; height:44px; font-size:13px; }
+  table{ min-width:480px; }
+  .modal-content{ padding:26px 18px 20px; }
+  .fab-trophy{ right:14px; bottom:14px; width:52px; height:52px; }
+  .leaderboard-drawer{ border-radius: 18px 18px 0 0; }
+
+  .ledger-tab{ padding: 14px 8px; font-size:12.5px; letter-spacing:1.5px; }
+  .ledger-drawer{ width: 100vw; padding: 16px 14px 18px; }
+  .scorebook-table{ font-size:11.5px; }
+  .scorebook-table thead th, .scorebook-table tbody td{ padding: 8px 10px; }
+}
